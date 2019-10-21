@@ -1,0 +1,39 @@
+{
+  "name": "micro-observables",
+  "version": "1.0.0",
+  "description": "",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BeTomorrow/micro-observables.git"
+  },
+  "author": "BeTomorrow",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/BeTomorrow/micro-observables/issues"
+  },
+  "homepage": "https://github.com/BeTomorrow/micro-observables#readme",
+  "peerDependencies": {
+    "react": "^16.8.0"
+  },
+  "devDependencies": {
+    "@types/react": "^16.9.9",
+    "prettier": "^1.18.2",
+    "react": "^16.10.2",
+    "typescript": "^3.6.4"
+  },
+  "dependencies": {
+    "micro-signals": "^2.1.0"
+  },
+  "keywords": [
+    "observable",
+    "signal",
+    "typescript",
+    "react",
+    "hook"
+  ]
+}
