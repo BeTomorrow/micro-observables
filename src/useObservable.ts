@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Observable } from "./observable";
+import { ReadableObservable } from "./observable";
 
-export function useObservable<T>(observable: Observable<T>): T {
+export function useObservable<T>(observable: ReadableObservable<T>): T {
 	const [val, setVal] = useState(observable.get());
 
 	useEffect(() => {
