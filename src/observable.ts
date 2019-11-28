@@ -42,6 +42,14 @@ export class Observable<T> extends BaseObservable<T> {
 			this._onChange.dispatch(val);
 		}
 	}
+
+	update(updater: (val: T) => T) {
+		this.set(updater(this.get()));
+	}
+
+	readonly(): ReadableObservable<T> {
+		return this;
+	}
 }
 
 class MappedObservable<B, T> extends BaseObservable<T> {
