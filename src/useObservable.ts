@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ReadableObservable } from "./observable";
 
 export function useObservable<T>(observable: ReadableObservable<T>): T {
@@ -10,4 +10,9 @@ export function useObservable<T>(observable: ReadableObservable<T>): T {
 	}, [observable]);
 
 	return val;
+}
+
+export function useComputedObservable<T>(factory: () => ReadableObservable<T>, dependencies?: any[]): T {
+	const observable = useMemo(factory, dependencies);
+	return useObservable(observable);
 }
