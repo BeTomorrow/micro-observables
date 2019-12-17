@@ -16,6 +16,7 @@ import { observable } from "micro-observables";
 
 const favoriteBook = observable({ title: "The Jungle Book", author: "Rudyard Kipling" });
 const favoriteAuthor = favoriteBook.transform(book => book.author);
+
 assert.deepEqual(favoriteBook.get(), { title: "The Jungle Book", author: "Rudyard Kipling" });
 assert.equal(favoriteAuthor.get(), "Rudyard Kipling");
 
