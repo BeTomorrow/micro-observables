@@ -24,7 +24,7 @@ export class Observable<T> {
 		return Observable.compute([this], transform);
 	}
 
-	only(predicate: (val: T) => boolean): Observable<T | undefined> {
+	onlyIf(predicate: (val: T) => boolean): Observable<T | undefined> {
 		let prevVal: T | undefined = undefined;
 		return this.transform(val => {
 			if (predicate(val)) {
@@ -49,6 +49,7 @@ export class Observable<T> {
 		const computeValue = () => compute(inputObservables.map(it => it.get()));
 		const outputObservable = observable(computeValue());
 		const updateValue = () => { outputObservable.set(computeValue()); };
+		// TODO: to prevent memory leak, only subscribe when a listener is subscribed to our new observable
 		inputObservables.forEach(it => it.subscribe(updateValue));
 		return outputObservable;
 	}
@@ -66,7 +67,7 @@ export class WritableObservable<T> extends Observable<T> {
 		this.set(updater(this.get()));
 	}
 
-	readonly(): Observable<T> {
+	readOnly(): Observable<T> {
 		return this;
 	}
 }
