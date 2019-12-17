@@ -1,6 +1,6 @@
 # Micro-observables
 
-_A simple Observable library that can be used for state management in React applications._
+_A simple Observable library that can be used for easy state management in React applications._
 
 ## Observables
 
@@ -65,7 +65,7 @@ assert.equal(book.get(), "Pride and Prejudice");
 ```
 
 #### WritableObservable.update(updater: (value) => newValue)
-Convenient method to modify the value contained by the observable, using the currentValue. This is especially useful to work with collections or to increment values for example.
+Convenient method to modify the value contained by the observable, using the currentValue. It is equivalent to `observable.set(updater(observable.get()))`. This is especially useful to work with collections or to increment values for example.
 
 ```ts
 import { List } from "immutable";
@@ -75,5 +75,51 @@ assert.deepEqual(books.get().toArray(), ["The Jungle Book", "Pride and Prejudice
 ```
 
 #### Observable.subscribe(listener)
+Add a listener that will be called when the value of the observable changes. It returns a function to call to unsubscribe from the observable. **Note:** Unlike other observable libraries, the listener is not called immediately with the current value when `subscribe()` is called.
 
+```ts
+const book = observable("The Jungle Book");
 
+const received: string[] = [];
+const unsubscribe = book.subscribe(newBook => received.push(newBook));
+assert.deepEqual(received, []);
+
+book.set("Pride and Prejudice");
+assert.deepEqual(received, ["Pride and Prejudice"]);
+
+unsubscribe();
+book.set("Hamlet")
+assert.deepEqual(received, ["Pride and Prejudice"]);
+```
+
+#### Observable.transform(transform)
+Create a new observable with the result of the transform applied on the calling observable. It works the same as `Array.map()`.
+
+```ts
+const book = observable({ title: "The Jungle Book", author: "Kipling" });
+const author = book.transform(it => it.author);
+assert.deepEqual(author.get(), "Kipling");
+book.set({ title: "Hamlet", author: "Shakespeare" });
+assert.deepEqual(author.get(), "Shakespeare");
+```
+
+#### Observable.onlyIf(predicate)
+Create a new observable that is updated when the value of the calling observable passes the given predicate. When `onlyIf()` is called, if the value of the calling observable doesn't pass the predicate, the new observable contains initially `undefined`. It works the same as `Array.filter()`.
+
+```ts
+const counter = observable(0);
+const even = counter.onlyIf(it => it % 2 === 0);
+const odd = counter.onlyIf(it => it % 2 === 1);
+assert.equal(even.get(), 0);
+assert.equal(odd.get(), undefined);
+
+counter.update(it => it + 1);
+assert.equal(even.get(), 0);
+assert.equal(odd.get(), 1);
+
+counter.update(it => it + 1);
+assert.equal(even.get(), 2);
+assert.equal(odd.get(), 1);
+```
+
+#### WritableObservable.readOnly()
