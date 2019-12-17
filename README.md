@@ -32,12 +32,12 @@ assert.deepEqual(receivedAuthors, ["Austen", "Shakespeare"]);
 
 ## API
 
-In micro-observables, there are two types of observables : `Observable` and `WritableObservable`. An `Observable`' is read-only and can be created from a `WritableObservable` with the `readOnly()`, `transform()` or `onlyIf()` methods. A `WritableObservable` allows to modify its value with the `set()` or `update()` methods.
+In micro-observables, there are two types of observables : `WritableObservable` and `Observable`. A `WritableObservable` allows to modify its value with the `set()` or `update()` methods. An `Observable` is read-only and can be created from a `WritableObservable` with the `readOnly()`, `transform()` or `onlyIf()` methods.
 
 ### Functions
 
 #### observable(initialValue): WritableObservable
-`observable(initialValue)` is a convenient function to create a writable observable. It is equivalent to `new WritableObservable(initialValue)`.
+`observable(initialValue)` is a convenient function to create a `WritableObservable`. It is equivalent to `new WritableObservable(initialValue)`.
 
 Wrapping a value with the `observable()` function is all is needed to observe changes of a given value.
 
@@ -65,17 +65,16 @@ assert.equal(book.get(), "Pride and Prejudice");
 ```
 
 #### WritableObservable.update(updater: (value) => newValue)
-Convenient method to modify the value contained by the observable, using the currentValue. It is equivalent to `observable.set(updater(observable.get()))`. This is especially useful to work with collections or to increment values for example.
+Convenient method to modify the value contained by the observable, using the current value. It is equivalent to `observable.set(updater(observable.get()))`. This is especially useful to work with collections or to increment values for example.
 
 ```ts
-import { List } from "immutable";
-const books = observable(new List(["The Jungle Book"]));
-books.update(it => it.push("Pride and Prejudice"));
-assert.deepEqual(books.get().toArray(), ["The Jungle Book", "Pride and Prejudice"]);
+const books = observable(["The Jungle Book"]));
+books.update(it => [...it, "Pride and Prejudice"]);
+assert.deepEqual(books.get(), ["The Jungle Book", "Pride and Prejudice"]);
 ```
 
 #### Observable.subscribe(listener)
-Add a listener that will be called when the value of the observable changes. It returns a function to call to unsubscribe from the observable. **Note:** Unlike other observable libraries, the listener is not called immediately with the current value when `subscribe()` is called.
+Add a listener that will be called when the observable's value changes. It returns a function to call to unsubscribe from the observable. **Note:** Unlike other observable libraries, the listener is not called immediately with the current value when `subscribe()` is called.
 
 ```ts
 const book = observable("The Jungle Book");
@@ -104,7 +103,7 @@ assert.deepEqual(author.get(), "Shakespeare");
 ```
 
 #### Observable.onlyIf(predicate)
-Create a new observable that is updated when the value of the calling observable passes the given predicate. When `onlyIf()` is called, if the value of the calling observable doesn't pass the predicate, the new observable contains initially `undefined`. It works the same as `Array.filter()`.
+Create a new observable that is updated when the value of the calling observable passes the given predicate. When `onlyIf()` is called, if the value of the calling observable doesn't pass the predicate, the new observable is initialized with `undefined`. It works the same as `Array.filter()`.
 
 ```ts
 const counter = observable(0);
