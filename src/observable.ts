@@ -1,45 +1,64 @@
-import { ReadableSignal, Signal } from "micro-signals";
+type Listener<T> = (val: T) => void;
+type Unsubscriber = () => void;
 
-export interface ReadableObservable<T> {
-	onChange: ReadableSignal<T>;
-	get(): T;
-	map<U>(transform: (val: T) => U): ReadableObservable<U>;
-	filter(predicate: (val: T) => boolean): ReadableObservable<T | undefined>;
-}
-
-abstract class BaseObservable<T> implements ReadableObservable<T> {
+export class Observable<T> {
 	protected _val: T;
+	protected _listeners: Listener<T>[] = [];
 
 	constructor(val: T) {
 		this._val = val;
 	}
 
-	abstract onChange: ReadableSignal<T>;
-
 	get(): T {
 		return this._val;
 	}
 
-	map<U>(transform: (val: T) => U): ReadableObservable<U> {
-		return new MappedObservable(this, transform);
+	subscribe(listener: Listener<T>): Unsubscriber {
+		this._listeners.push(listener);
+		return () => {
+			this._listeners = this._listeners.filter(l => l !== listener);
+		};
 	}
 
-	filter(predicate: (val: T) => boolean): ReadableObservable<T | undefined> {
-		return new FilteredObservable(this, predicate);
+	transform<U>(transform: (val: T) => U): Observable<U> {
+		return Observable.compute([this], transform);
+	}
+
+	only(predicate: (val: T) => boolean): Observable<T | undefined> {
+		let prevVal: T | undefined = undefined;
+		return this.transform(val => {
+			if (predicate(val)) {
+				prevVal = val;
+				return val;
+			} else {
+				return prevVal;
+			}
+		});
+	}
+
+	static compute<U>(inputObservables: [], transform: () => U): Observable<U>;
+	static compute<T1, U>(inputObservables: [Observable<T1>], transform: (val1: T1) => U): Observable<U>;
+	static compute<T1, T2, U>(inputObservables: [Observable<T1>, Observable<T2>], transform: (val1: T1, val2: T2) => U): Observable<U>;
+	static compute<T1, T2, T3, U>(inputObservables: [Observable<T1>, Observable<T2>, Observable<T3>], transform: (val1: T1, val2: T2) => U): Observable<U>;
+	static compute<T1, T2, T3, T4, U>(inputObservables: [Observable<T1>, Observable<T2>, Observable<T3>, Observable<T4>], transform: (val1: T1, val2: T2) => U): Observable<U>;
+	static compute<T1, T2, T3, T4, T5, U>(inputObservables: [Observable<T1>, Observable<T2>, Observable<T3>, Observable<T4>, Observable<T5>], transform: (val1: T1, val2: T2) => U): Observable<U>;
+	static compute<T1, T2, T3, T4, T5, T6, U>(inputObservables: [Observable<T1>, Observable<T2>, Observable<T3>, Observable<T4>, Observable<T5>, Observable<T6>], transform: (val1: T1, val2: T2) => U): Observable<U>;
+	static compute<T1, T2, T3, T4, T5, T6, T7, U>(inputObservables: [Observable<T1>, Observable<T2>, Observable<T3>, Observable<T4>, Observable<T5>, Observable<T6>, Observable<T7>], transform: (val1: T1, val2: T2) => U): Observable<U>;
+	static compute<T1, T2, T3, T4, T5, T6, T7, T8, U>(inputObservables: [Observable<T1>, Observable<T2>, Observable<T3>, Observable<T4>, Observable<T5>, Observable<T6>, Observable<T7>, Observable<T8>], transform: (val1: T1, val2: T2) => U): Observable<U>;
+	static compute<U>(inputObservables: Observable<any>[], compute: (...inputVals: any[]) => U): Observable<U> {
+		const computeValue = () => compute(inputObservables.map(it => it.get()));
+		const outputObservable = observable(computeValue());
+		const updateValue = () => { outputObservable.set(computeValue()); };
+		inputObservables.forEach(it => it.subscribe(updateValue));
+		return outputObservable;
 	}
 }
 
-export class Observable<T> extends BaseObservable<T> {
-	private _onChange = new Signal<T>();
-
-	get onChange(): ReadableSignal<T> {
-		return this._onChange;
-	}
-
+export class WritableObservable<T> extends Observable<T> {
 	set(val: T) {
 		if (this._val !== val) {
 			this._val = val;
-			this._onChange.dispatch(val);
+			this._listeners.forEach(l => l(val));
 		}
 	}
 
@@ -47,31 +66,11 @@ export class Observable<T> extends BaseObservable<T> {
 		this.set(updater(this.get()));
 	}
 
-	readonly(): ReadableObservable<T> {
+	readonly(): Observable<T> {
 		return this;
 	}
 }
 
-class MappedObservable<B, T> extends BaseObservable<T> {
-	readonly onChange: ReadableSignal<T>;
-
-	constructor(baseObservable: ReadableObservable<B>, transform: (val: B) => T) {
-		super(transform(baseObservable.get()));
-		this.onChange = baseObservable.onChange.map(transform);
-		this.onChange.add(val => {
-			this._val = val;
-		});
-	}
-}
-
-class FilteredObservable<T> extends BaseObservable<T | undefined> {
-	readonly onChange: ReadableSignal<T | undefined>;
-
-	constructor(baseObservable: ReadableObservable<T>, predicate: (val: T) => boolean) {
-		super(predicate(baseObservable.get()) ? baseObservable.get() : undefined);
-		this.onChange = baseObservable.onChange.filter(predicate);
-		this.onChange.add(val => {
-			this._val = val;
-		});
-	}
+export function observable<T>(val: T): WritableObservable<T> {
+	return new WritableObservable(val);
 }
