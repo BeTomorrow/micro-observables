@@ -4,7 +4,7 @@ _A simple Observable library that can be used for easy state management in React
 
 ## Observables
 
-In micro-observables, observables store a single value and allow adding and removing listeners in order to be notified when this value changes. If you are used to RxJS, think of micro-observables as a subset of RxJS exposing only the `BehaviorSubject` class.
+In micro-observables, observables are objects that store a single value and that notifies when this value changes. If you are used to RxJS, you can think of micro-observables as a tiny subset of RxJS exposing only the `BehaviorSubject` class.
 
 Observables can be transformed into new observables by applying functions on them,
 
@@ -92,7 +92,7 @@ assert.deepEqual(received, ["Pride and Prejudice"]);
 ```
 
 #### Observable.transform(transform)
-Create a new observable with the result of the transform applied on the calling observable. It works the same as `Array.map()`.
+Create a new observable with the result of the given transform applied on the calling observable. It works the same as `Array.map()`.
 
 ```ts
 const book = observable({ title: "The Jungle Book", author: "Kipling" });
@@ -122,3 +122,39 @@ assert.equal(odd.get(), 1);
 ```
 
 #### WritableObservable.readOnly()
+Cast the observable into a read-only observable without the `set()` and `update()` methods. This is used for better encapsulation, to prevent outside modifications when exposing an observable.
+
+```ts
+class BookService {
+    private _book = observable("The Jungle Book");
+
+    get book() {
+        return this._book.readOnly();
+    }
+}
+```
+
+### Static Methods
+
+#### Observable.compute(inputObservables, compute: (inputValues) => result)
+
+Create a new observable with the result of the given computation applied on the input observables. This is a more generic version of the instance method `Observable.transform()`, allowing to use several observables as input.
+
+```ts
+const author = observable("Shakespeare");
+const book = observable("Hamlet");
+const bookWithAuthor = Observable.compute(
+    [author, book] => (a, b) => ({ title: b, author: a })
+);
+assert.deepEqual(bookWithAuthor.get(), { title: "Hamlet", author: "Shakespeare" })
+
+book.set("Romeo and Juliet");
+assert.deepEqual(bookWithAuthor.get(), { title: "Romeo and Juliet", author: "Shakespeare" })
+
+author.set("Kipling");
+book.set("The Jungle Book");
+assert.deepEqual(bookWithAuthor.get(), { title: "The Jungle Book", author: "Kipling" })
+
+```
+
+## Using micro-observables with React
