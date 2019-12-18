@@ -210,5 +210,25 @@ const TodoItem: React.FC({ todo: Todo, index: number }) = ({todo, index}) => {
 ### Hooks
 
 #### useObservable(observable)
+Returns the value stored by the observable and trigger a re-render when the value changes.
 
-#### useComputedObservable(inputObservables, (inputValues) => result)
+```tsx
+const TodoList: React.FC = () => {
+    const todos = useObservable(todoService.todos);
+    return <div>
+        {todos.map((todo, index) => <TodoItem key={index} todo={todo} />)}
+    </div>;
+}
+```
+
+#### useComputedObservable(inputObservables, compute: (inputValues) => result)
+Create a new observable with the result of the given computation applied on the given input observables. Returns the value stored in the computed observable and trigger a re-render when this value changes. This is equivalent to `useObservable(Observable.compute(inputObservables, compute))` with the use of `useMemo()` to avoid creating a new observable each time the component is rendered.
+
+```tsx
+const TodoList: React.FC = () => {
+    const completedTodos = useComputedObservable([todoService.todos], todos.filter(it => it.completed));
+    return <div>
+        {completedTodos.map((todo, index) => <TodoItem key={index} todo={todo} />)}
+    </div>;
+}
+```
