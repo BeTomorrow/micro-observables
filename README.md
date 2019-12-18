@@ -8,7 +8,7 @@ In micro-observables, observables are objects that store a single value and that
 
 Observables can be converted into new observables by applying functions on them, such as `transform()` and `onlyIf()`.
 
-Micro-observables works great in combination with React thanks to the use of the `useObservable()` and `useComputedObservable()` hooks. It can be used as a simple yet powerful alternative to Redux or MobX.
+Micro-observables works great in combination with React thanks to the use of the `useObservable()` and `useComputedObservable()` hooks. It can be used as a simple yet powerful alternative to [Redux](https://redux.js.org) or [MobX](https://mobx.js.org).
 
 Micro-observables has been inspired by the simplicity of [micro-signals](https://github.com/lelandmiller/micro-signals). We recommend checking out this library for event-driven programming.
 
@@ -206,3 +206,9 @@ const TodoItem: React.FC({ todo: Todo, index: number }) = ({todo, index}) => {
     </li>;
 }
 ```
+
+### Hooks
+
+#### useObservable(observable)
+
+#### useComputedObservable(inputObservables, (inputValues) => result)
