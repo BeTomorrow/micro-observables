@@ -4,7 +4,7 @@ _A simple Observable library that can be used for easy state management in React
 
 ## Introduction
 
-In micro-observables, observables are objects that store a single value and that allow to be notified when this value changes. If you are used to RxJS, you can think of micro-observables as a tiny subset of RxJS exposing only the `BehaviorSubject` class.
+In micro-observables, observables are objects that store a single value and that notify listeners when this value changes. If you are used to RxJS, you can think of micro-observables as a React-friendly subset of RxJS exposing only the `BehaviorSubject` class.
 
 Observables can be converted into new observables by applying functions on them, such as `transform()` and `onlyIf()`.
 
@@ -69,7 +69,7 @@ assert.equal(book.get(), "Pride and Prejudice");
 ```
 
 #### WritableObservable.update(updater: (value) => newValue)
-Convenient method to modify the value contained by the observable, using the current value. It is equivalent to `observable.set(updater(observable.get()))`. This is especially useful to work with collections or to increment values for example.
+Convenient method to modify the value contained by the observable, using its current value. It is equivalent to `observable.set(updater(observable.get()))`. This is especially useful to work with collections or to increment values for example.
 
 ```ts
 const books = observable(["The Jungle Book"]));
@@ -114,9 +114,9 @@ Create a new observable with the result of the given transform applied on the ca
 ```ts
 const book = observable({ title: "The Jungle Book", author: "Kipling" });
 const author = book.transform(it => it.author);
-assert.deepEqual(author.get(), "Kipling");
+assert.equal(author.get(), "Kipling");
 book.set({ title: "Hamlet", author: "Shakespeare" });
-assert.deepEqual(author.get(), "Shakespeare");
+assert.equal(author.get(), "Shakespeare");
 ```
 
 #### Observable.onlyIf(predicate)
@@ -162,7 +162,7 @@ assert.deepEqual(bookWithAuthor.get(), { title: "The Jungle Book", author: "Kipl
 ```
 
 ## Using micro-observables with React
-Micro-observables can be used in combination with React to replace state-management libraries such as Redux or MobX. It allows to easily keep components in sync with shared state by storing state-values into observables and by using `useObservable()` and `useComputedObservable()` hooks to access these values.
+Micro-observables works well with React and can be used to replace state-management libraries such as Redux or MobX. It allows to easily keep components in sync with shared state by storing state-values into observables and by using the `useObservable()` and `useComputedObservable()` hooks to access these values.
 
 ### Obligatory TodoList example
 ```tsx
@@ -202,7 +202,7 @@ const TodoItem: React.FC({ todo: Todo, index: number }) = ({todo, index}) => {
         style={{ textDecoration: completed ? "line-through" : "none" }}
         onClick={() => todoService.toggleTodo(index)}
     >
-        {text}
+        {todo.text}
     </li>;
 }
 ```
@@ -226,7 +226,7 @@ Create a new observable with the result of the given computation applied on the 
 
 ```tsx
 const TodoList: React.FC = () => {
-    const completedTodos = useComputedObservable([todoService.todos], todos.filter(it => it.completed));
+    const completedTodos = useComputedObservable([todoService.todos], todos => todos.filter(it => it.completed));
     return <div>
         {completedTodos.map((todo, index) => <TodoItem key={index} todo={todo} />)}
     </div>;
