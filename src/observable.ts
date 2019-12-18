@@ -46,7 +46,7 @@ export class Observable<T> {
 	static compute<T1, T2, T3, T4, T5, T6, T7, U>(inputObservables: [Observable<T1>, Observable<T2>, Observable<T3>, Observable<T4>, Observable<T5>, Observable<T6>, Observable<T7>], transform: (val1: T1, val2: T2) => U): Observable<U>;
 	static compute<T1, T2, T3, T4, T5, T6, T7, T8, U>(inputObservables: [Observable<T1>, Observable<T2>, Observable<T3>, Observable<T4>, Observable<T5>, Observable<T6>, Observable<T7>, Observable<T8>], transform: (val1: T1, val2: T2) => U): Observable<U>;
 	static compute<U>(inputObservables: Observable<any>[], compute: (...inputVals: any[]) => U): Observable<U> {
-		const computeValue = () => compute(inputObservables.map(it => it.get()));
+		const computeValue = () => compute(...inputObservables.map(it => it.get()));
 		const outputObservable = observable(computeValue());
 		const updateValue = () => { outputObservable.set(computeValue()); };
 		// TODO: to prevent memory leak, only subscribe when a listener is subscribed to our new observable

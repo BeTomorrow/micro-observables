@@ -72,7 +72,7 @@ assert.equal(book.get(), "Pride and Prejudice");
 Convenient method to modify the value contained by the observable, using its current value. It is equivalent to `observable.set(updater(observable.get()))`. This is especially useful to work with collections or to increment values for example.
 
 ```ts
-const books = observable(["The Jungle Book"]));
+const books = observable(["The Jungle Book"]);
 books.update(it => [...it, "Pride and Prejudice"]);
 assert.deepEqual(books.get(), ["The Jungle Book", "Pride and Prejudice"]);
 ```
@@ -91,7 +91,7 @@ book.set("Pride and Prejudice");
 assert.deepEqual(received, ["Pride and Prejudice"]);
 
 unsubscribe();
-book.set("Hamlet")
+book.set("Hamlet");
 assert.deepEqual(received, ["Pride and Prejudice"]);
 ```
 
@@ -147,18 +147,17 @@ Create a new observable with the result of the given computation applied on the 
 ```ts
 const author = observable("Shakespeare");
 const book = observable("Hamlet");
-const bookWithAuthor = Observable.compute(
-    [author, book] => (a, b) => ({ title: b, author: a })
+const bookWithAuthor = Observable.compute([author, book],
+    (a, b) => ({ title: b, author: a })
 );
-assert.deepEqual(bookWithAuthor.get(), { title: "Hamlet", author: "Shakespeare" })
+assert.deepEqual(bookWithAuthor.get(), { title: "Hamlet", author: "Shakespeare" });
 
 book.set("Romeo and Juliet");
-assert.deepEqual(bookWithAuthor.get(), { title: "Romeo and Juliet", author: "Shakespeare" })
+assert.deepEqual(bookWithAuthor.get(), { title: "Romeo and Juliet", author: "Shakespeare" });
 
 author.set("Kipling");
 book.set("The Jungle Book");
-assert.deepEqual(bookWithAuthor.get(), { title: "The Jungle Book", author: "Kipling" })
-
+assert.deepEqual(bookWithAuthor.get(), { title: "The Jungle Book", author: "Kipling" });
 ```
 
 ## Using micro-observables with React
