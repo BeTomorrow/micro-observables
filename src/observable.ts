@@ -20,7 +20,7 @@ export class Observable<T> {
 		}
 	}
 
-	subscribe(listener: Listener<T>): Unsubscriber {
+	onChange(listener: Listener<T>): Unsubscriber {
 		this._listeners.push(listener);
 		return () => {
 			this._listeners = this._listeners.filter(l => l !== listener);
@@ -80,28 +80,26 @@ class ComputedObservable<T> extends Observable<T> {
 	}
 
 	get(): T {
-		// If no listeners are attached, this._val can be outdated so let's refresh it
-		if (this._listeners.length === 0) {
-			this._val = this.computeValue();
-		};
-		return this._val;
+		// If no listeners are attached, this._val is probably outdated so let's compute it
+		return this._listeners.length > 0 ? this._val : this.computeValue();
 	}
 
-	subscribe(listener: Listener<T>): Unsubscriber {
-		const unsubscribe = super.subscribe(listener);
+	onChange(listener: Listener<T>): Unsubscriber {
+		const unsubscribe = super.onChange(listener);
 		this.onListenersChanged();
 		return () => { unsubscribe(); this.onListenersChanged(); }
 	}
 
 	// Only subscribe to input-observables if there are listeners attached to the computed observable.
 	// This is done to prevent memory-leaks that could occur when creating many computed observables
-	// that would be referenced by the input-observables even when they are no longer used
+	// that would still be referenced by the input-observables even when they are no longer used
 	private onListenersChanged() {
 		if (this._listeners.length === 1) {
+			this._val = this.computeValue();
 			const updateValue = () => this._set(this.computeValue());
-			this._unsubscribeFromInputObservables = this.inputObservables.map(it => it.subscribe(updateValue));
+			this._unsubscribeFromInputObservables = this.inputObservables.map(it => it.onChange(updateValue));
 		} else if (this._listeners.length === 0) {
-			this._unsubscribeFromInputObservables.forEach(it => it());
+			this._unsubscribeFromInputObservables.forEach(unsubscribe => unsubscribe());
 			this._unsubscribeFromInputObservables = [];
 		}
 	}

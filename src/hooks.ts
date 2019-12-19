@@ -5,7 +5,7 @@ export function useObservable<T>(observable: Observable<T>): T {
 	const [val, setVal] = useState(observable.get());
 
 	useEffect(() => {
-		return observable.subscribe(setVal);
+		return observable.onChange(setVal);
 	}, [observable]);
 
 	return val;

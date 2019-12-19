@@ -25,7 +25,7 @@ assert.deepEqual(favoriteBook.get(), { title: "The Jungle Book", author: "Kiplin
 assert.equal(favoriteAuthor.get(), "Kipling");
 
 const receivedAuthors: string[] = [];
-favoriteAuthor.subscribe(book => receivedAuthors.push(book));
+favoriteAuthor.onChange(book => receivedAuthors.push(book));
 
 favoriteBook.set({ title: "Pride and Prejudice", author: "Austen" });
 assert.deepEqual(receivedAuthors, ["Austen"]);
@@ -77,14 +77,14 @@ books.update(it => [...it, "Pride and Prejudice"]);
 assert.deepEqual(books.get(), ["The Jungle Book", "Pride and Prejudice"]);
 ```
 
-#### Observable.subscribe(listener)
-Add a listener that will be called when the observable's value changes. It returns a function to call to unsubscribe from the observable. **Note:** Unlike other observable libraries, the listener is not called immediately with the current value when `subscribe()` is called.
+#### Observable.onChange(listener)
+Add a listener that will be called when the observable's value changes. It returns a function to call to unsubscribe from the observable. **Note:** Unlike other observable libraries, the listener is not called immediately with the current value when `onChange()` is called.
 
 ```ts
 const book = observable("The Jungle Book");
 
 const received: string[] = [];
-const unsubscribe = book.subscribe(newBook => received.push(newBook));
+const unsubscribe = book.onChange(newBook => received.push(newBook));
 assert.deepEqual(received, []);
 
 book.set("Pride and Prejudice");
