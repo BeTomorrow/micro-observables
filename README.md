@@ -244,4 +244,4 @@ const TodoList: React.FC = () => {
 }
 ```
 
-The main difference here is that using `useComputedObservable()` will prevent unnecessary renders if the first todo remains the same. In the `useObservable()` version, the `TodoList` component will be re-rendered each time `totoService.todos` changes, even if the first todo has not changed.
+The main difference here is that using `useComputedObservable()` will prevent unnecessary renders if the first todo remains the same. In the `useObservable()` version, the `TodoList` component will be re-rendered each time `todoService.todos` changes, even if the first todo has not changed.
