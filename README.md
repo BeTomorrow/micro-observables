@@ -225,9 +225,23 @@ Create a new observable with the result of the given computation applied on the 
 
 ```tsx
 const TodoList: React.FC = () => {
-    const completedTodos = useComputedObservable([todoService.todos], todos => todos.filter(it => it.completed));
+    const mostUrgent = useComputedObservable([todoService.todos], todos => todos.length > 0 ? todos[0] : null);
     return <div>
-        {completedTodos.map((todo, index) => <TodoItem key={index} todo={todo} />)}
+        {mostUrgent ? `Your most urgent task is: ${mostUrgent.text}` : "Well done, there is nothing left to do"}
     </div>;
 }
 ```
+
+**Note:** The previous example could have been written with `useObservable()` instead of `useComputedObservable()`, like this:
+
+```tsx
+const TodoList: React.FC = () => {
+    const todos = useObservable(todoService.todos);
+    const mostUrgent = todos.length > 0 ? todos[0] : null;
+    return <div>
+        {mostUrgent ? `Your most urgent task is: ${mostUrgent.text}` : "Well done, there is nothing left to do"}
+    </div>;
+}
+```
+
+The main difference here is that using `useComputedObservable()` will prevent unnecessary renders if the first todo remains the same. In the `useObservable()` version, the `TodoList` component will be re-rendered each time `totoService.todos` changes, even if the first todo has not changed.
