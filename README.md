@@ -34,6 +34,54 @@ favoriteBook.set({ title: "Hamlet", author: "Shakespeare" });
 assert.deepEqual(receivedAuthors, ["Austen", "Shakespeare"]);
 ```
 
+## Using micro-observables with React
+
+Micro-observables works well with React and can be used to replace state-management libraries such as Redux or MobX. It allows to easily keep components in sync with shared state by storing state-values into observables and by using the `useObservable()` and `useComputedObservable()` hooks to access these values.
+
+### Obligatory TodoList example
+
+```tsx
+type Todo = { text: string; completed: boolean };
+
+class TodoService {
+    private _todos = observable<Todo[]>([]);
+
+    get todos() {
+        return this._todos.readOnly();
+    }
+
+    addTodo(text: string) {
+        this._todos.update(todos => [...todos, { text, completed: false }]);
+    }
+
+    toggleTodo(index: number) {
+        this._todos.update(todos => todos.map(
+            (todo, i) => i === index ? { ...todo, completed: !todo.completed } : todo
+        ));
+    }
+}
+
+const todoService = new TodoService();
+
+const TodoList: React.FC = () => {
+    const todos = useObservable(todoService.todos);
+    return <div>
+        <ul>
+            {todos.map((todo, index) => <TodoItem key={index} todo={todo} index={index} />)}
+        </ul>
+    </div>;
+};
+
+const TodoItem: React.FC({ todo: Todo, index: number }) = ({todo, index}) => {
+    return <li
+        style={{ textDecoration: completed ? "line-through" : "none" }}
+        onClick={() => todoService.toggleTodo(index)}
+    >
+        {todo.text}
+    </li>;
+}
+```
+
 ## API
 
 In micro-observables, there are two types of observables: `WritableObservable` and `Observable`. A `WritableObservable` allows to modify its value with the `set()` or `update()` methods. An `Observable` is read-only and can be created from a `WritableObservable` with the `readOnly()`, `transform()` or `onlyIf()` methods.
@@ -141,7 +189,6 @@ assert.equal(odd.get(), 1);
 ### Static Methods
 
 #### Observable.compute(inputObservables, compute: (inputValues) => result)
-
 Create a new observable with the result of the given computation applied on the input observables. This is a more generic version of the instance method `Observable.transform()`, allowing to use several observables as input.
 
 ```ts
@@ -158,52 +205,6 @@ assert.deepEqual(bookWithAuthor.get(), { title: "Romeo and Juliet", author: "Sha
 author.set("Kipling");
 book.set("The Jungle Book");
 assert.deepEqual(bookWithAuthor.get(), { title: "The Jungle Book", author: "Kipling" });
-```
-
-## Using micro-observables with React
-Micro-observables works well with React and can be used to replace state-management libraries such as Redux or MobX. It allows to easily keep components in sync with shared state by storing state-values into observables and by using the `useObservable()` and `useComputedObservable()` hooks to access these values.
-
-### Obligatory TodoList example
-```tsx
-type Todo = { text: string; completed: boolean };
-
-class TodoService {
-    private _todos = observable<Todo[]>([]);
-
-    get todos() {
-        return this._todos.readOnly();
-    }
-
-    addTodo(text: string) {
-        this._todos.update(it => [...it, { text, completed: false }]);
-    }
-
-    toggleTodo(index: number) {
-        this._todos.update(it => it.map(
-            (todo, i) => i === index ? { ...todo, completed: !todo.completed } : todo
-        ));
-    }
-}
-
-const todoService = new TodoService();
-
-const TodoList: React.FC = () => {
-    const todos = useObservable(todoService.todos);
-    return <div>
-        <ul>
-            {todos.map((todo, index) => <TodoItem key={index} todo={todo} index={index} />)}
-        </ul>
-    </div>;
-};
-
-const TodoItem: React.FC({ todo: Todo, index: number }) = ({todo, index}) => {
-    return <li
-        style={{ textDecoration: completed ? "line-through" : "none" }}
-        onClick={() => todoService.toggleTodo(index)}
-    >
-        {todo.text}
-    </li>;
-}
 ```
 
 ### Hooks
