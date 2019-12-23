@@ -36,10 +36,8 @@ export class Observable<T> {
 		return this.transform(val => {
 			if (predicate(val)) {
 				prevVal = val;
-				return val;
-			} else {
-				return prevVal;
-			}
+			} 
+			return prevVal;
 		});
 	}
 
