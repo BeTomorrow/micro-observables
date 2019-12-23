@@ -21,15 +21,36 @@ test("Listeners added with Observable.onChange should be called when value chang
 	const book = observable("The Jungle Book");
 
 	const received: string[] = [];
-	const unsubscribe = book.onChange(newBook => received.push(newBook));
+	book.onChange(newBook => received.push(newBook));
 	expect(received).toStrictEqual([]);
 
 	book.set("Pride and Prejudice");
 	expect(received).toStrictEqual(["Pride and Prejudice"]);
+});
 
-	unsubscribe();
+test("Listeners added with Observable.onChange should be removed when calling returned function", () => {
+	const book = observable("The Jungle Book");
+
+	const received: string[] = [];
+	const addBookToReceived = (newBook: string) => received.push(newBook);
+	const unsubscribe1 = book.onChange(addBookToReceived);
+	const unsubscribe2 = book.onChange(addBookToReceived);
+	expect(received).toStrictEqual([]);
+
+	book.set("Pride and Prejudice");
+	expect(received).toStrictEqual(["Pride and Prejudice", "Pride and Prejudice"]);
+
+	unsubscribe1();
 	book.set("Hamlet");
-	expect(received).toStrictEqual(["Pride and Prejudice"]);
+	expect(received).toStrictEqual(["Pride and Prejudice", "Pride and Prejudice", "Hamlet"]);
+
+	unsubscribe1();
+	book.set("Romeo and Juliet");
+	expect(received).toStrictEqual(["Pride and Prejudice", "Pride and Prejudice", "Hamlet", "Romeo and Juliet"]);
+
+	unsubscribe2();
+	book.set("Macbeth");
+	expect(received).toStrictEqual(["Pride and Prejudice", "Pride and Prejudice", "Hamlet", "Romeo and Juliet"]);
 });
 
 test("Observable.readOnly should not change value contained in observable", () => {

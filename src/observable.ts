@@ -22,8 +22,13 @@ export class Observable<T> {
 
 	onChange(listener: Listener<T>): Unsubscriber {
 		this._listeners.push(listener);
+
+		let listenerRemoved = false;
 		return () => {
-			this._listeners = this._listeners.filter(l => l !== listener);
+			if (!listenerRemoved) {
+				listenerRemoved = true;
+				this._listeners.splice(this._listeners.indexOf(listener), 1);
+			}
 		};
 	}
 
