@@ -37,14 +37,12 @@ export class Observable<T> {
 	}
 
 	onlyIf(predicate: (val: T) => boolean): Observable<T | undefined> {
-		let prevVal: T | undefined = undefined;
+		let filteredVal: T | undefined = undefined;
 		return this.transform(val => {
 			if (predicate(val)) {
-				prevVal = val;
-				return val;
-			} else {
-				return prevVal;
-			}
+				filteredVal = val;
+			} 
+			return filteredVal;
 		});
 	}
 
