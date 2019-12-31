@@ -1,4 +1,4 @@
-import { observable, Observable } from "./observable";
+import { observable, Observable } from "../src/observable";
 
 test("Observable.get should return initial value", () => {
 	const book = observable("The Jungle Book");
