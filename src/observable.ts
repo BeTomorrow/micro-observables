@@ -1,4 +1,4 @@
-type Listener<T> = (val: T) => void;
+type Listener<T> = (val: T, prevVal: T) => void;
 type Unsubscriber = () => void;
 
 export class Observable<T> {
@@ -15,8 +15,9 @@ export class Observable<T> {
 
 	protected _set(val: T) {
 		if (this._val !== val) {
+			const prevVal = this._val;
 			this._val = val;
-			this._listeners.forEach(l => l(val));
+			this._listeners.forEach(l => l(val, prevVal));
 		}
 	}
 

@@ -21,11 +21,17 @@ test("Listeners added with Observable.onChange should be called when value chang
 	const book = observable("The Jungle Book");
 
 	const received: string[] = [];
-	book.onChange(newBook => received.push(newBook));
+	const prevReceived: string[] = [];
+	book.onChange((newBook, prevBook) => {
+		received.push(newBook);
+		prevReceived.push(prevBook);
+	});
 	expect(received).toStrictEqual([]);
+	expect(prevReceived).toStrictEqual([]);
 
 	book.set("Pride and Prejudice");
 	expect(received).toStrictEqual(["Pride and Prejudice"]);
+	expect(prevReceived).toStrictEqual(["The Jungle Book"]);
 });
 
 test("Listeners added with Observable.onChange should be removed when calling returned function", () => {

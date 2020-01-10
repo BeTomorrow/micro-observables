@@ -100,7 +100,7 @@ const book = observable("The Jungle Book")
 ### Instance Methods
 
 #### Observable.get()
-Returns the value contained by the observable without having to subscribe to it.
+Return the value contained by the observable without having to subscribe to it.
 
 ```ts
 const book = observable("The Jungle Book");
@@ -108,7 +108,7 @@ assert.equal(book.get(), "The Jungle Book");
 ```
 
 #### WritableObservable.set(newValue)
-Sets the new value contained by the observable. If the new value is not equal to the current one, listeners will be called with the new value.
+Set the new value contained by the observable. If the new value is not equal to the current one, listeners will be called with the new value.
 
 ```ts
 const book = observable("The Jungle Book");
@@ -126,21 +126,28 @@ assert.deepEqual(books.get(), ["The Jungle Book", "Pride and Prejudice"]);
 ```
 
 #### Observable.onChange(listener)
-Add a listener that will be called when the observable's value changes. It returns a function to call to unsubscribe from the observable. **Note:** Unlike other observable libraries, the listener is not called immediately with the current value when `onChange()` is called.
+Add a listener that will be called when the observable's value changes. It returns a function to call to unsubscribe from the observable. Each time the value changes, all the listeners are called with the new value and the previous value. **Note:** Unlike other observable libraries, the listener is not called immediately with the current value when `onChange()` is called.
 
 ```ts
 const book = observable("The Jungle Book");
 
 const received: string[] = [];
-const unsubscribe = book.onChange(newBook => received.push(newBook));
+const prevReceived: string[] = [];
+const unsubscribe = book.onChange((newBook, prevBook) => {
+    received.push(newBook);
+    prevReceived.push(prevBook);
+});
 assert.deepEqual(received, []);
+assert.deepEqual(prevReceived, []);
 
 book.set("Pride and Prejudice");
 assert.deepEqual(received, ["Pride and Prejudice"]);
+assert.deepEqual(prevReceived, ["The Jungle Book"]);
 
 unsubscribe();
 book.set("Hamlet");
 assert.deepEqual(received, ["Pride and Prejudice"]);
+assert.deepEqual(prevReceived, ["The Jungle Book"]);
 ```
 
 #### WritableObservable.readOnly()
@@ -210,7 +217,7 @@ assert.deepEqual(bookWithAuthor.get(), { title: "The Jungle Book", author: "Kipl
 ### Hooks
 
 #### useObservable(observable)
-Returns the value stored by the observable and trigger a re-render when the value changes.
+Return the value stored by the observable and trigger a re-render when the value changes.
 
 ```tsx
 const TodoList: React.FC = () => {
