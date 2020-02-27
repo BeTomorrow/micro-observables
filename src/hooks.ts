@@ -2,13 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { Observable } from "./observable";
 
 export function useObservable<T>(observable: Observable<T>): T {
-	const [val, setVal] = useState(observable.get());
+	const [, forceUpdate] = useState();
 
 	useEffect(() => {
-		return observable.onChange(newVal => setVal(newVal));
+		return observable.onChange(forceUpdate);
 	}, [observable]);
 
-	return val;
+	return observable.get();
 }
 
 export function useComputedObservable<U>(inputObservables: [], transform: () => U, extraDeps?: any[]): U;
