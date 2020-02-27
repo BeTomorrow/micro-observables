@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Observable } from "./observable";
 
 export function useObservable<T>(observable: Observable<T>): T {
-	const [, forceUpdate] = useState();
+	const [, forceUpdate] = useState({});
 
 	useEffect(() => {
-		return observable.onChange(forceUpdate);
+		return observable.onChange(() => forceUpdate({}));
 	}, [observable]);
 
 	return observable.get();
