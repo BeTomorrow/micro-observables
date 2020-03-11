@@ -89,17 +89,19 @@ In micro-observables, there are two types of observables: `WritableObservable` a
 ### Functions
 
 #### observable(initialValue): WritableObservable
+
 `observable(initialValue)` is a convenient function to create a `WritableObservable`. It is equivalent to `new WritableObservable(initialValue)`.
 
 Wrapping a value with the `observable()` function is all is needed to observe changes of a given value.
 
 ```ts
-const book = observable("The Jungle Book")
+const book = observable("The Jungle Book");
 ```
 
 ### Instance Methods
 
 #### Observable.get()
+
 Return the value contained by the observable without having to subscribe to it.
 
 ```ts
@@ -108,6 +110,7 @@ assert.equal(book.get(), "The Jungle Book");
 ```
 
 #### WritableObservable.set(newValue)
+
 Set the new value contained by the observable. If the new value is not equal to the current one, listeners will be called with the new value.
 
 ```ts
@@ -117,6 +120,7 @@ assert.equal(book.get(), "Pride and Prejudice");
 ```
 
 #### WritableObservable.update(updater: (value) => newValue)
+
 Convenient method to modify the value contained by the observable, using its current value. It is equivalent to `observable.set(updater(observable.get()))`. This is especially useful to work with collections or to increment values for example.
 
 ```ts
@@ -125,7 +129,8 @@ books.update(it => [...it, "Pride and Prejudice"]);
 assert.deepEqual(books.get(), ["The Jungle Book", "Pride and Prejudice"]);
 ```
 
-#### Observable.onChange(listener)
+#### Observable.onChange(listener: (value, prevValue) => void)
+
 Add a listener that will be called when the observable's value changes. It returns a function to call to unsubscribe from the observable. Each time the value changes, all the listeners are called with the new value and the previous value. **Note:** Unlike other observable libraries, the listener is not called immediately with the current value when `onChange()` is called.
 
 ```ts
@@ -134,8 +139,8 @@ const book = observable("The Jungle Book");
 const received: string[] = [];
 const prevReceived: string[] = [];
 const unsubscribe = book.onChange((newBook, prevBook) => {
-    received.push(newBook);
-    prevReceived.push(prevBook);
+	received.push(newBook);
+	prevReceived.push(prevBook);
 });
 assert.deepEqual(received, []);
 assert.deepEqual(prevReceived, []);
@@ -151,19 +156,21 @@ assert.deepEqual(prevReceived, ["The Jungle Book"]);
 ```
 
 #### WritableObservable.readOnly()
+
 Cast the observable into a read-only observable without the `set()` and `update()` methods. This is used for better encapsulation, preventing outside modifications when an observable is exposed.
 
 ```ts
 class BookService {
-    private _book = observable("The Jungle Book");
+	private _book = observable("The Jungle Book");
 
-    get book() {
-        return this._book.readOnly();
-    }
+	get book() {
+		return this._book.readOnly();
+	}
 }
 ```
 
 #### Observable.transform(transform)
+
 Create a new observable with the result of the given transform applied on the calling observable. It works the same as `Array.map()`.
 
 ```ts
@@ -175,6 +182,7 @@ assert.equal(author.get(), "Shakespeare");
 ```
 
 #### Observable.onlyIf(predicate)
+
 Create a new observable that is updated when the value of the calling observable passes the given predicate. When `onlyIf()` is called, if the value of the calling observable doesn't pass the predicate, the new observable is initialized with `undefined`. It works the same as `Array.filter()`.
 
 ```ts
@@ -196,14 +204,13 @@ assert.equal(odd.get(), 1);
 ### Static Methods
 
 #### Observable.compute(inputObservables, compute: (inputValues) => result)
+
 Create a new observable with the result of the given computation applied on the input observables. This is a more generic version of the instance method `Observable.transform()`, allowing to use several observables as input.
 
 ```ts
 const author = observable("Shakespeare");
 const book = observable("Hamlet");
-const bookWithAuthor = Observable.compute([author, book],
-    (a, b) => ({ title: b, author: a })
-);
+const bookWithAuthor = Observable.compute([author, book], (a, b) => ({ title: b, author: a }));
 assert.deepEqual(bookWithAuthor.get(), { title: "Hamlet", author: "Shakespeare" });
 
 book.set("Romeo and Juliet");
@@ -216,40 +223,49 @@ assert.deepEqual(bookWithAuthor.get(), { title: "The Jungle Book", author: "Kipl
 
 ### Hooks
 
-#### useObservable(observable)
-Return the value stored by the observable and trigger a re-render when the value changes.
+#### useObservable(observable, onChange?)
+
+Return the value stored by the observable and trigger a re-render when the value changes. It can take an optional listener than can be used to perform side-effects when the value changes.
 
 ```tsx
 const TodoList: React.FC = () => {
-    const todos = useObservable(todoService.todos);
-    return <div>
-        {todos.map((todo, index) => <TodoItem key={index} todo={todo} />)}
-    </div>;
-}
+	const todos = useObservable(todoService.todos);
+	return (
+		<div>
+			{todos.map((todo, index) => (
+				<TodoItem key={index} todo={todo} />
+			))}
+		</div>
+	);
+};
 ```
 
-#### useComputedObservable(inputObservables, compute: (inputValues) => result)
-Create a new observable with the result of the given computation applied on the given input observables. Returns the value stored in the computed observable and trigger a re-render when this value changes. This is equivalent to `useObservable(Observable.compute(inputObservables, compute))` with the use of `useMemo()` to avoid creating a new observable each time the component is rendered.
+#### useComputedObservable(compute: () => Observable, deps?, onChange?)
+
+Shortcut for `useObservable(useMemo(compute), deps, onChange)`. Returns the value stored in the computed observable and trigger a re-render when this value changes. This is equivalent to `useObservable(Observable.compute(inputObservables, compute))` with the use of `useMemo()` to avoid creating a new observable each time the component is rendered.
 
 ```tsx
 const TodoList: React.FC = () => {
-    const mostUrgent = useComputedObservable([todoService.todos], todos => todos.length > 0 ? todos[0] : null);
-    return <div>
-        {mostUrgent ? `Your most urgent task is: ${mostUrgent.text}` : "Well done, there is nothing left to do"}
-    </div>;
-}
+	const mostUrgent = useComputedObservable(() =>
+		todoService.todos.transform(todos => (todos.length > 0 ? todos[0] : null))
+	);
+	const assignedToUser = useComputedObservable(() => todoService.getTodosForUser(userId), [userId]);
+	return (
+		<div>{mostUrgent ? `Your most urgent task is: ${mostUrgent.text}` : "Well done, there is nothing left to do"}</div>
+	);
+};
 ```
 
 **Note:** The previous example could have been written with `useObservable()` instead of `useComputedObservable()`, like this:
 
 ```tsx
 const TodoList: React.FC = () => {
-    const todos = useObservable(todoService.todos);
-    const mostUrgent = todos.length > 0 ? todos[0] : null;
-    return <div>
-        {mostUrgent ? `Your most urgent task is: ${mostUrgent.text}` : "Well done, there is nothing left to do"}
-    </div>;
-}
+	const todos = useObservable(todoService.todos);
+	const mostUrgent = todos.length > 0 ? todos[0] : null;
+	return (
+		<div>{mostUrgent ? `Your most urgent task is: ${mostUrgent.text}` : "Well done, there is nothing left to do"}</div>
+	);
+};
 ```
 
 The main difference here is that using `useComputedObservable()` will prevent unnecessary renders if the first todo remains the same. In the `useObservable()` version, the `TodoList` component will be re-rendered each time `todoService.todos` changes, even if the first todo has not changed.
