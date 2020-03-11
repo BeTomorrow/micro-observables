@@ -14,6 +14,6 @@ export function useObservable<T>(observable: Observable<T>, onChange?: Listener<
 	return observable.get();
 }
 
-export function useComputedObservable<T>(compute: () => Observable<T>, deps: any[], onChange?: Listener<T>): T {
+export function useComputedObservable<T>(compute: () => Observable<T>, deps: any[] = [], onChange?: Listener<T>): T {
 	return useObservable(useMemo(compute, deps), onChange);
 }
