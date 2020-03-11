@@ -119,9 +119,7 @@ test("Observable.onlyOf should create a new observable, keeping only the values 
 test("Observable.compute should create a new observable with the result of the computation applied on the given input values", () => {
 	const author = observable("Shakespeare");
 	const book = observable("Hamlet");
-	const bookWithAuthor = Observable.compute([author, book],
-		(a, b) => ({ title: b, author: a })
-	);
+	const bookWithAuthor = Observable.compute([author, book], (a, b) => ({ title: b, author: a }));
 	expect(bookWithAuthor.get()).toStrictEqual({ title: "Hamlet", author: "Shakespeare" });
 
 	book.set("Romeo and Juliet");
