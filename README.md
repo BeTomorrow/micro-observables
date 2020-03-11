@@ -242,14 +242,13 @@ const TodoList: React.FC = () => {
 
 #### useComputedObservable(compute: () => Observable, deps?, onChange?)
 
-Shortcut for `useObservable(useMemo(compute), deps, onChange)`. Returns the value stored in the computed observable and trigger a re-render when this value changes. This is equivalent to `useObservable(Observable.compute(inputObservables, compute))` with the use of `useMemo()` to avoid creating a new observable each time the component is rendered.
+Returns the value stored in the computed observable and trigger a re-render when this value changes. This is equivalent to `useObservable(useMemo(compute), deps, onChange)`.
 
 ```tsx
 const TodoList: React.FC = () => {
 	const mostUrgent = useComputedObservable(() =>
 		todoService.todos.transform(todos => (todos.length > 0 ? todos[0] : null))
 	);
-	const assignedToUser = useComputedObservable(() => todoService.getTodosForUser(userId), [userId]);
 	return (
 		<div>{mostUrgent ? `Your most urgent task is: ${mostUrgent.text}` : "Well done, there is nothing left to do"}</div>
 	);
