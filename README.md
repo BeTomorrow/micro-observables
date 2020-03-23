@@ -259,7 +259,13 @@ const TodoList: React.FC = () => {
     const user = useObservable(userService.user);
     const todos = useComputedObservable(() => todoService.getTodosAssignedTo(user.id), [user.id]);
     return (
-        <div>{mostUrgent ? `Your most urgent task is: ${mostUrgent.text}` : "Well done, there is nothing left to do"}</div>
+        <div>
+            <ul>
+                {todos.map((todo, index) => (
+                    <TodoItem key={index} todo={todo} index={index} />
+                ))}
+            </ul>
+        </div>
     );
 };
 ```
