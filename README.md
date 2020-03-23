@@ -46,9 +46,7 @@ type Todo = { text: string; completed: boolean };
 class TodoService {
     private _todos = observable<Todo[]>([]);
 
-    get todos() {
-        return this._todos.readOnly();
-    }
+	readonly todos = this._todos.readOnly();
 
     addTodo(text: string) {
         this._todos.update(todos => [...todos, { text, completed: false }]);
@@ -223,9 +221,9 @@ assert.deepEqual(bookWithAuthor.get(), { title: "The Jungle Book", author: "Kipl
 
 ### Hooks
 
-#### useObservable(observable, onChange?)
+#### useObservable(observable)
 
-Return the value stored by the observable and trigger a re-render when the value changes. It can take an optional listener than can be used to perform side-effects when the value changes.
+Return the value stored by the observable and trigger a re-render when the value changes.
 
 ```tsx
 const TodoList: React.FC = () => {
@@ -240,31 +238,28 @@ const TodoList: React.FC = () => {
 };
 ```
 
-#### useComputedObservable(compute: () => Observable, deps?, onChange?)
+#### useComputedObservable(compute: () => Observable, deps)
 
-Returns the value stored in the computed observable and trigger a re-render when this value changes. This is equivalent to `useObservable(useMemo(compute), deps, onChange)`.
+Shortcut for `useObservable(useMemo(compute, deps))`. Return the value stored in the observable returned by the `compute` parameter and trigger a re-render when this value changes. The `compute` function is evaluated each time one of the values in `deps` changes.
 
 ```tsx
+type Todo = { text: string; completed: boolean; assigneeId: string };
+
+class TodoService {
+	private _todos = observable<Todo[]>([]);
+
+	readonly todos = this._todos.readOnly();
+
+	getTodosAssignedTo(assigneeId: string): Observable<Todo[]> {
+		return this._todos.transform(todos => todos.filter(it => it.assigneeId === assigneeId));
+	}
+}
+
 const TodoList: React.FC = () => {
-	const mostUrgent = useComputedObservable(() =>
-		todoService.todos.transform(todos => (todos.length > 0 ? todos[0] : null))
-	);
+	const user = useObservable(userService.user);
+	const todos = useComputedObservable(() => todoService.getTodosAssignedTo(user.id), [user.id]);
 	return (
 		<div>{mostUrgent ? `Your most urgent task is: ${mostUrgent.text}` : "Well done, there is nothing left to do"}</div>
 	);
 };
 ```
-
-**Note:** The previous example could have been written with `useObservable()` instead of `useComputedObservable()`, like this:
-
-```tsx
-const TodoList: React.FC = () => {
-	const todos = useObservable(todoService.todos);
-	const mostUrgent = todos.length > 0 ? todos[0] : null;
-	return (
-		<div>{mostUrgent ? `Your most urgent task is: ${mostUrgent.text}` : "Well done, there is nothing left to do"}</div>
-	);
-};
-```
-
-The main difference here is that using `useComputedObservable()` will prevent unnecessary renders if the first todo remains the same. In the `useObservable()` version, the `TodoList` component will be re-rendered each time `todoService.todos` changes, even if the first todo has not changed.
