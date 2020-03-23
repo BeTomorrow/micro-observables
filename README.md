@@ -46,7 +46,7 @@ type Todo = { text: string; completed: boolean };
 class TodoService {
     private _todos = observable<Todo[]>([]);
 
-	readonly todos = this._todos.readOnly();
+    readonly todos = this._todos.readOnly();
 
     addTodo(text: string) {
         this._todos.update(todos => [...todos, { text, completed: false }]);
@@ -137,8 +137,8 @@ const book = observable("The Jungle Book");
 const received: string[] = [];
 const prevReceived: string[] = [];
 const unsubscribe = book.onChange((newBook, prevBook) => {
-	received.push(newBook);
-	prevReceived.push(prevBook);
+    received.push(newBook);
+    prevReceived.push(prevBook);
 });
 assert.deepEqual(received, []);
 assert.deepEqual(prevReceived, []);
@@ -159,11 +159,11 @@ Cast the observable into a read-only observable without the `set()` and `update(
 
 ```ts
 class BookService {
-	private _book = observable("The Jungle Book");
+    private _book = observable("The Jungle Book");
 
-	get book() {
-		return this._book.readOnly();
-	}
+    get book() {
+        return this._book.readOnly();
+    }
 }
 ```
 
@@ -227,14 +227,14 @@ Return the value stored by the observable and trigger a re-render when the value
 
 ```tsx
 const TodoList: React.FC = () => {
-	const todos = useObservable(todoService.todos);
-	return (
-		<div>
-			{todos.map((todo, index) => (
-				<TodoItem key={index} todo={todo} />
-			))}
-		</div>
-	);
+    const todos = useObservable(todoService.todos);
+    return (
+        <div>
+            {todos.map((todo, index) => (
+                <TodoItem key={index} todo={todo} />
+            ))}
+        </div>
+    );
 };
 ```
 
@@ -246,20 +246,20 @@ Shortcut for `useObservable(useMemo(compute, deps))`. Return the value stored in
 type Todo = { text: string; completed: boolean; assigneeId: string };
 
 class TodoService {
-	private _todos = observable<Todo[]>([]);
+    private _todos = observable<Todo[]>([]);
 
-	readonly todos = this._todos.readOnly();
+    readonly todos = this._todos.readOnly();
 
-	getTodosAssignedTo(assigneeId: string): Observable<Todo[]> {
-		return this._todos.transform(todos => todos.filter(it => it.assigneeId === assigneeId));
-	}
+    getTodosAssignedTo(assigneeId: string): Observable<Todo[]> {
+        return this._todos.transform(todos => todos.filter(it => it.assigneeId === assigneeId));
+    }
 }
 
 const TodoList: React.FC = () => {
-	const user = useObservable(userService.user);
-	const todos = useComputedObservable(() => todoService.getTodosAssignedTo(user.id), [user.id]);
-	return (
-		<div>{mostUrgent ? `Your most urgent task is: ${mostUrgent.text}` : "Well done, there is nothing left to do"}</div>
-	);
+    const user = useObservable(userService.user);
+    const todos = useComputedObservable(() => todoService.getTodosAssignedTo(user.id), [user.id]);
+    return (
+        <div>{mostUrgent ? `Your most urgent task is: ${mostUrgent.text}` : "Well done, there is nothing left to do"}</div>
+    );
 };
 ```
