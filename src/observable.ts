@@ -1,3 +1,5 @@
+import memoizeOne from "memoize-one";
+
 export type Listener<T> = (val: T, prevVal: T) => void;
 export type Unsubscriber = () => void;
 
@@ -95,7 +97,8 @@ export class Observable<T> {
 		transform: (val1: T1, val2: T2, val3: T3, val4: T4, val5: T5, val6: T6, val7: T7, val8: T8) => U
 	): Observable<U>;
 	static compute<U>(inputObservables: Observable<any>[], compute: (...inputVals: any[]) => U): Observable<U> {
-		const computeValue = () => compute(...inputObservables.map(it => it.get()));
+		const memoizedCompute = memoizeOne(compute);
+		const computeValue = () => memoizedCompute(...inputObservables.map(it => it.get()));
 		return new ComputedObservable(inputObservables, computeValue);
 	}
 }
