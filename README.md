@@ -25,7 +25,7 @@ assert.deepEqual(favoriteBook.get(), { title: "The Jungle Book", author: "Kiplin
 assert.equal(favoriteAuthor.get(), "Kipling");
 
 const receivedAuthors: string[] = [];
-favoriteAuthor.onChange(book => receivedAuthors.push(book));
+favoriteAuthor.onChange(author => receivedAuthors.push(author));
 
 favoriteBook.set({ title: "Pride and Prejudice", author: "Austen" });
 assert.deepEqual(receivedAuthors, ["Austen"]);
