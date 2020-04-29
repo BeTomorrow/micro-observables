@@ -3,40 +3,56 @@ import memoizeOne from "memoize-one";
 export type Listener<T> = (val: T, prevVal: T) => void;
 export type Unsubscriber = () => void;
 
-export class Observable<T> {
-	protected _val: T;
-	protected _listeners: Listener<T>[] = [];
+export type ObservableValue<T> = T extends Observable<infer U> ? U : T;
+export type ObservableValues<T> = { [K in keyof T]: ObservableValue<T[K]> };
 
-	constructor(val: T) {
+export class Observable<T> {
+	private _val: T | Observable<T>;
+	private _valUnsubscriber: Unsubscriber | undefined;
+	private _listeners: Listener<T>[] = [];
+
+	constructor(val: T | Observable<T>) {
 		this._val = val;
 	}
 
 	get(): T {
-		return this._val;
+		return this._val instanceof Observable ? this._val.get() : this._val;
 	}
 
-	protected _set(val: T) {
+	protected _set(val: T | Observable<T>) {
 		if (this._val !== val) {
-			const prevVal = this._val;
+			this.unlistenToValueChanges();
+
+			const prevVal = this.get();
 			this._val = val;
-			this._listeners.forEach(l => l(val, prevVal));
+			const newVal = this.get();
+
+			this.listenToValueChanges();
+
+			if (newVal !== prevVal) {
+				this.notifyListeners(newVal, prevVal);
+			}
 		}
 	}
 
 	onChange(listener: Listener<T>): Unsubscriber {
 		this._listeners.push(listener);
+		this.listenToValueChanges();
 
 		let listenerRemoved = false;
 		return () => {
 			if (!listenerRemoved) {
 				listenerRemoved = true;
 				this._listeners.splice(this._listeners.indexOf(listener), 1);
+				if (this._listeners.length === 0) {
+					this.unlistenToValueChanges();
+				}
 			}
 		};
 	}
 
-	transform<U>(transform: (val: T) => U): Observable<U> {
-		return Observable.compute([this], transform);
+	transform<U>(transform: (val: T) => U | Observable<U>): Observable<U> {
+		return new ComputedObservable([this], ([val]) => transform(val));
 	}
 
 	onlyIf(predicate: (val: T) => boolean): Observable<T | undefined> {
@@ -49,73 +65,71 @@ export class Observable<T> {
 		});
 	}
 
-	static compute<U>(inputObservables: readonly [], transform: () => U): Observable<U>;
-	static compute<T1, U>(inputObservables: readonly [Observable<T1>], transform: (val1: T1) => U): Observable<U>;
-	static compute<T1, T2, U>(
-		inputObservables: readonly [Observable<T1>, Observable<T2>],
-		transform: (val1: T1, val2: T2) => U
-	): Observable<U>;
-	static compute<T1, T2, T3, U>(
-		inputObservables: readonly [Observable<T1>, Observable<T2>, Observable<T3>],
-		transform: (val1: T1, val2: T2, val3: T3) => U
-	): Observable<U>;
-	static compute<T1, T2, T3, T4, U>(
-		inputObservables: readonly [Observable<T1>, Observable<T2>, Observable<T3>, Observable<T4>],
-		transform: (val1: T1, val2: T2, val3: T3, val4: T4) => U
-	): Observable<U>;
-	static compute<T1, T2, T3, T4, T5, U>(
-		inputObservables: readonly [Observable<T1>, Observable<T2>, Observable<T3>, Observable<T4>, Observable<T5>],
-		transform: (val1: T1, val2: T2, val3: T3, val4: T4, val5: T5) => U
-	): Observable<U>;
-	static compute<T1, T2, T3, T4, T5, T6, U>(
-		inputObservables: readonly [
-			Observable<T1>,
-			Observable<T2>,
-			Observable<T3>,
-			Observable<T4>,
-			Observable<T5>,
-			Observable<T6>
-		],
-		transform: (val1: T1, val2: T2, val3: T3, val4: T4, val5: T5, val6: T6) => U
-	): Observable<U>;
-	static compute<T1, T2, T3, T4, T5, T6, T7, U>(
-		inputObservables: readonly [
-			Observable<T1>,
-			Observable<T2>,
-			Observable<T3>,
-			Observable<T4>,
-			Observable<T5>,
-			Observable<T6>,
-			Observable<T7>
-		],
-		transform: (val1: T1, val2: T2, val3: T3, val4: T4, val5: T5, val6: T6, val7: T7) => U
-	): Observable<U>;
-	static compute<T1, T2, T3, T4, T5, T6, T7, T8, U>(
-		inputObservables: readonly [
-			Observable<T1>,
-			Observable<T2>,
-			Observable<T3>,
-			Observable<T4>,
-			Observable<T5>,
-			Observable<T6>,
-			Observable<T7>,
-			Observable<T8>
-		],
-		transform: (val1: T1, val2: T2, val3: T3, val4: T4, val5: T5, val6: T6, val7: T7, val8: T8) => U
-	): Observable<U>;
-	static compute<U>(inputObservables: readonly Observable<any>[], compute: (...inputVals: any[]) => U): Observable<U> {
-		const memoizedCompute = memoizeOne(compute);
-		const computeValue = () => memoizedCompute(...inputObservables.map(it => it.get()));
-		return new ComputedObservable(inputObservables, computeValue);
+	as<U extends T>(): Observable<U> {
+		return (this as unknown) as Observable<U>;
+	}
+
+	static from<T extends Observable<any>[]>(...observables: T): Observable<ObservableValues<T>> {
+		return new ComputedObservable(observables, values => values);
+	}
+
+	static merge<T>(observables: Observable<T>[]): Observable<T[]> {
+		return new ComputedObservable(observables, values => values);
+	}
+
+	static fromPromise<T, E = undefined>(
+		promise: Promise<T>,
+		onError?: (error: any) => E
+	): Observable<T | E | undefined> {
+		const obs = observable<T | E | undefined>(undefined);
+		promise.then(
+			val => obs.set(val),
+			e => onError && obs.set(onError(e))
+		);
+		return obs;
+	}
+
+	toPromise(): Promise<T> {
+		return new Promise(resolve => {
+			const unsubscriber = this.onChange(val => {
+				resolve(val);
+				unsubscriber();
+			});
+		});
+	}
+
+	protected hasListeners(): boolean {
+		return this._listeners.length > 0;
+	}
+
+	private notifyListeners(val: T, prevVal: T): void {
+		this._listeners.slice().forEach(it => it(val, prevVal));
+	}
+
+	private listenToValueChanges(): void {
+		if (!this.hasListeners()) {
+			// TODO: Explain
+			return;
+		}
+		if (!this._valUnsubscriber && this._val instanceof Observable) {
+			this._valUnsubscriber = this._val.onChange((v, p) => this.notifyListeners(v, p));
+		}
+	}
+
+	private unlistenToValueChanges(): void {
+		if (this._valUnsubscriber) {
+			this._valUnsubscriber();
+			this._valUnsubscriber = undefined;
+		}
 	}
 }
 
 export class WritableObservable<T> extends Observable<T> {
-	set(val: T) {
+	set(val: T | Observable<T>) {
 		this._set(val);
 	}
 
-	update(updater: (val: T) => T) {
+	update(updater: (val: T) => T | Observable<T>) {
 		this.set(updater(this.get()));
 	}
 
@@ -124,42 +138,61 @@ export class WritableObservable<T> extends Observable<T> {
 	}
 }
 
-class ComputedObservable<T> extends Observable<T> {
-	private _unsubscribeFromInputObservables: Unsubscriber[] = [];
+class ComputedObservable<T, U extends Observable<any>[]> extends Observable<T> {
+	private _inputs: U;
+	private _inputUnsubscribers: Unsubscriber[] = [];
+	private _compute: (vals: ObservableValues<U>) => T | Observable<T>;
 
-	constructor(private inputObservables: readonly Observable<any>[], private computeValue: () => T) {
-		super(computeValue());
+	constructor(inputs: U, compute: (vals: ObservableValues<U>) => T | Observable<T>) {
+		super((undefined as unknown) as T);
+		this._inputs = inputs;
+		this._compute = memoizeOne(compute);
+		this.updateValue();
 	}
 
 	get(): T {
-		// If no listeners are attached, this._val is probably outdated so let's compute it
-		return this._listeners.length > 0 ? this._val : this.computeValue();
+		if (!this.hasListeners()) {
+			const val = this.computeValue();
+			return val instanceof Observable ? val.get() : val;
+		} else {
+			return super.get();
+		}
 	}
 
 	onChange(listener: Listener<T>): Unsubscriber {
+		if (!this.hasListeners()) {
+			this.updateValue();
+			this.listenToInputChanges();
+		}
+
 		const unsubscribe = super.onChange(listener);
-		this.onListenersChanged();
+
 		return () => {
 			unsubscribe();
-			this.onListenersChanged();
+			if (!this.hasListeners()) {
+				this.unlistenToInputChanges();
+			}
 		};
 	}
 
-	// Only subscribe to input-observables if there are listeners attached to the computed observable.
-	// This is done to prevent memory-leaks that could occur when creating many computed observables
-	// that would still be referenced by the input-observables even when they are no longer used
-	private onListenersChanged() {
-		if (this._listeners.length === 1) {
-			this._val = this.computeValue();
-			const updateValue = () => this._set(this.computeValue());
-			this._unsubscribeFromInputObservables = this.inputObservables.map(it => it.onChange(updateValue));
-		} else if (this._listeners.length === 0) {
-			this._unsubscribeFromInputObservables.forEach(unsubscribe => unsubscribe());
-			this._unsubscribeFromInputObservables = [];
-		}
+	protected listenToInputChanges(): void {
+		this._inputUnsubscribers = this._inputs.map(it => it.onChange(() => this.updateValue()));
+	}
+
+	protected unlistenToInputChanges(): void {
+		this._inputUnsubscribers.forEach(it => it());
+		this._inputUnsubscribers = [];
+	}
+
+	private computeValue(): T | Observable<T> {
+		return this._compute(this._inputs.map(it => it.get()) as ObservableValues<U>);
+	}
+
+	private updateValue(): void {
+		this._set(this.computeValue());
 	}
 }
 
-export function observable<T>(val: T): WritableObservable<T> {
+export function observable<T>(val: T | Observable<T>): WritableObservable<T> {
 	return new WritableObservable(val);
 }
