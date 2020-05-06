@@ -11,6 +11,16 @@ test("Observable.set() should change observable's value", () => {
 	expect(book.get()).toBe("Pride and Prejudice");
 });
 
+test("Observable's value should change when input observable changes", () => {
+	const book1 = observable("The Jungle Book");
+	const book2 = observable(book1);
+	expect(book1.get()).toBe("The Jungle Book");
+	expect(book2.get()).toBe("The Jungle Book");
+	book1.set("Pride and Prejudice");
+	expect(book1.get()).toBe("Pride and Prejudice");
+	expect(book2.get()).toBe("Pride and Prejudice");
+});
+
 test("Observable.update() should change observable's value, using current value", () => {
 	const books = observable(["The Jungle Book"]);
 	books.update(it => [...it, "Pride and Prejudice"]);
@@ -57,15 +67,6 @@ test("Listeners added with Observable.onChange() should be removed when calling 
 	unsubscribe2();
 	book.set("Macbeth");
 	expect(received).toStrictEqual(["Pride and Prejudice", "Pride and Prejudice", "Hamlet", "Romeo and Juliet"]);
-});
-
-test("Observable.readOnly() should not change value contained in observable", () => {
-	const book = observable("The Jungle Book");
-	const readOnlyBook = book.readOnly();
-	expect(readOnlyBook.get()).toBe("The Jungle Book");
-
-	book.set("Pride and Prejudice");
-	expect(readOnlyBook.get()).toBe("Pride and Prejudice");
 });
 
 test("Observable.transform() should create a new observable with the result of the transform applied on the current value", () => {
@@ -149,4 +150,29 @@ test("Observable.from().transform() should create a new observable with the resu
 	author.set("Kipling");
 	book.set("The Jungle Book");
 	expect(bookWithAuthor.get()).toStrictEqual({ title: "The Jungle Book", author: "Kipling" });
+});
+
+// Observable.merge()
+
+test("Observable.fromPromise() should create a new observable initialized with undefined and changed when the promise is resolved", async () => {
+	const bookPromise = Promise.resolve("The Jungle Book");
+	const book = Observable.fromPromise(bookPromise);
+	expect(book.get()).toStrictEqual(undefined);
+
+	await expect(bookPromise).resolves;
+	expect(book.get()).toStrictEqual("The Jungle Book");
+
+	const failedBookPromise = Promise.reject("timeout");
+	const failedBook = Observable.fromPromise(failedBookPromise, e => `Failed to fetch book: ${e}`);
+	expect(failedBook.get()).toStrictEqual(undefined);
+
+	await expect(failedBookPromise).rejects;
+	expect(failedBook.get()).toStrictEqual("Failed to fetch book: timeout");
+});
+
+test("Observable.toPromise() should create a promise that is resolved the next time the observable's value changes", async () => {
+	const book = observable("The Jungle Book");
+	const bookPromise = book.toPromise();
+	book.set("Pride and Prejudice");
+	await expect(bookPromise).resolves.toStrictEqual("Pride and Prejudice");
 });
