@@ -77,6 +77,16 @@ export class Observable<T> {
 		return new ComputedObservable(observables, values => values);
 	}
 
+	static latest<T>(...observables: Observable<T>[]): Observable<T> {
+		let prevValues: T[] | undefined;
+		return new ComputedObservable(observables, values => {
+			debugger;
+			const val = !prevValues ? values[0] : values.find((it, index) => it !== prevValues![index])!;
+			prevValues = values;
+			return val;
+		});
+	}
+
 	static fromPromise<T, E = undefined>(
 		promise: Promise<T>,
 		onError?: (error: any) => E
@@ -103,7 +113,7 @@ export class Observable<T> {
 	}
 
 	private notifyListeners(val: T, prevVal: T): void {
-		this._listeners.slice().forEach(it => it(val, prevVal));
+		this._listeners.slice().forEach(it => it(val, prevVal)); // TODO: optimize slice ?
 	}
 
 	private listenToValueChanges(): void {
@@ -141,12 +151,12 @@ export class WritableObservable<T> extends Observable<T> {
 class ComputedObservable<T, U extends Observable<any>[]> extends Observable<T> {
 	private _inputs: U;
 	private _inputUnsubscribers: Unsubscriber[] = [];
-	private _compute: (vals: ObservableValues<U>) => T | Observable<T>;
+	private _compute: (...vals: any[]) => T | Observable<T>;
 
 	constructor(inputs: U, compute: (vals: ObservableValues<U>) => T | Observable<T>) {
 		super((undefined as unknown) as T);
 		this._inputs = inputs;
-		this._compute = memoizeOne(compute);
+		this._compute = memoizeOne((...values) => compute(values as ObservableValues<U>));
 		this.updateValue();
 	}
 
@@ -185,7 +195,7 @@ class ComputedObservable<T, U extends Observable<any>[]> extends Observable<T> {
 	}
 
 	private computeValue(): T | Observable<T> {
-		return this._compute(this._inputs.map(it => it.get()) as ObservableValues<U>);
+		return this._compute(...this._inputs.map(it => it.get()));
 	}
 
 	private updateValue(): void {

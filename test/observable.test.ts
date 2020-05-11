@@ -117,7 +117,7 @@ test("Observable.onlyOf() should create a new observable, keeping only the value
 	expect(receivedOdd).toStrictEqual([1, 3]);
 });
 
-test("Observable.from() should create a new observable of an array containing the values from the given observables", () => {
+test("Observable.from() should create a new observable containing an array with the values from the given observables", () => {
 	const book1 = observable("The Jungle Book");
 	const book2 = observable("Pride and Prejudice");
 	const books = Observable.from(book1, book2);
@@ -140,19 +140,41 @@ test("Observable.from() should create a new observable of an array containing th
 
 test("Observable.from().transform() should create a new observable with the result of the computation applied on the given input values", () => {
 	const author = observable("Shakespeare");
-	const book = observable("Hamlet");
-	const bookWithAuthor = Observable.from(author, book).transform(([a, b]) => ({ title: b, author: a }));
-	expect(bookWithAuthor.get()).toStrictEqual({ title: "Hamlet", author: "Shakespeare" });
+	const title = observable("Hamlet");
+	const bookWithAuthor = Observable.from(author, title).transform(([a, t]) => ({ author: a, title: t }));
+	expect(bookWithAuthor.get()).toStrictEqual({ author: "Shakespeare", title: "Hamlet" });
 
-	book.set("Romeo and Juliet");
-	expect(bookWithAuthor.get()).toStrictEqual({ title: "Romeo and Juliet", author: "Shakespeare" });
+	title.set("Romeo and Juliet");
+	expect(bookWithAuthor.get()).toStrictEqual({ author: "Shakespeare", title: "Romeo and Juliet" });
 
 	author.set("Kipling");
-	book.set("The Jungle Book");
-	expect(bookWithAuthor.get()).toStrictEqual({ title: "The Jungle Book", author: "Kipling" });
+	title.set("The Jungle Book");
+	expect(bookWithAuthor.get()).toStrictEqual({ author: "Kipling", title: "The Jungle Book" });
 });
 
-// Observable.merge()
+test("Observable.merge() should transform an array of observables into an observable of array", () => {
+	const book1 = observable("The Jungle Book");
+	const book2 = observable("Pride and Prejudice");
+	const books = Observable.merge([book1, book2]);
+	expect(books.get()).toStrictEqual(["The Jungle Book", "Pride and Prejudice"]);
+
+	book1.set("Romeo and Juliet");
+	book2.set("Hamlet");
+	expect(books.get()).toStrictEqual(["Romeo and Juliet", "Hamlet"]);
+});
+
+test("Observable.latest() should create a new observable with the value from the latest changed observable", () => {
+	const book1 = observable("The Jungle Book");
+	const book2 = observable("Pride and Prejudice");
+	const latestBook = Observable.latest(book1, book2);
+	expect(latestBook.get()).toStrictEqual("The Jungle Book");
+
+	book1.set("Romeo and Juliet");
+	expect(latestBook.get()).toStrictEqual("Romeo and Juliet");
+
+	book2.set("Hamlet");
+	expect(latestBook.get()).toStrictEqual("Hamlet");
+});
 
 test("Observable.fromPromise() should create a new observable initialized with undefined and changed when the promise is resolved", async () => {
 	const bookPromise = Promise.resolve("The Jungle Book");
@@ -175,4 +197,20 @@ test("Observable.toPromise() should create a promise that is resolved the next t
 	const bookPromise = book.toPromise();
 	book.set("Pride and Prejudice");
 	await expect(bookPromise).resolves.toStrictEqual("Pride and Prejudice");
+});
+
+test("Computed observables should emit as few onChange() as possible", () => {
+	const books = observable(["The Jungle Book", "Pride and Prejudice"]);
+	const book1 = books.transform(it => it[0]);
+	const book2 = books.transform(it => it[1]);
+	const newBooks = Observable.from(book1, book2);
+	expect(newBooks.get()).toStrictEqual(books.get());
+
+	books.set(["Romeo and Juliet", "Hamlet"]);
+	expect(newBooks.get()).toStrictEqual(books.get());
+
+	const received: string[][] = [];
+	newBooks.onChange(b => received.push(b));
+	books.set(["The Jungle Book", "Pride and Prejudice"]);
+	expect(received).toStrictEqual([["The Jungle Book", "Pride and Prejudice"]]);
 });
