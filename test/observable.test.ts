@@ -86,6 +86,20 @@ test("Observable.transform() should create a new observable with the result of t
 	expect(received).toStrictEqual(["Austen", "Shakespeare"]);
 });
 
+test("Observable.transform() should accept a function returning another observable", () => {
+	const books = [observable("The Jungle Book"), observable("Pride and Prejudice")];
+	const selectedIndex = observable(0);
+	const selectedBook = selectedIndex.transform(it => books[it]);
+	expect(selectedBook.get()).toStrictEqual("The Jungle Book");
+
+	const received: string[] = [];
+	selectedBook.onChange(b => received.push(b));
+	books[0].set("Hamlet");
+	selectedIndex.set(1);
+	books[1].set("Romeo and Juliet");
+	expect(received).toStrictEqual(["Hamlet", "Pride and Prejudice", "Romeo and Juliet"]);
+});
+
 test("Observable.onlyOf() should create a new observable, keeping only the values that passes the given predicate", () => {
 	const counter = observable(0);
 	const even = counter.onlyIf(it => it % 2 === 0);
@@ -199,7 +213,7 @@ test("Observable.toPromise() should create a promise that is resolved the next t
 	await expect(bookPromise).resolves.toStrictEqual("Pride and Prejudice");
 });
 
-test("Computed observables should emit as few onChange() as possible", () => {
+test("Computed observables should call listeners as few as possible", () => {
 	const books = observable(["The Jungle Book", "Pride and Prejudice"]);
 	const book1 = books.transform(it => it[0]);
 	const book2 = books.transform(it => it[1]);

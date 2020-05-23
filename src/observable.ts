@@ -6,25 +6,44 @@ export type ObservableValues<T> = { [K in keyof T]: ObservableValue<T[K]> };
 
 class BaseObservable<T> {
 	private _val!: T;
+	private _valInput: BaseObservable<T> | undefined;
 	private _inputs: BaseObservable<any>[] = [];
 	private _outputs: BaseObservable<any>[] = [];
 	private _listeners: Listener<T>[] = [];
 	private _attachedToInputs = false;
 	private _dirty = false;
 
-	constructor() {
-		// Note: this._val is not assigned here.
-		// Subclasses should call _set() in their constructor
+	constructor(val: T | BaseObservable<T>) {
+		this._set(val);
 	}
 
 	get(): T {
-		return this._val;
+		const val = this._get();
+		return val instanceof BaseObservable ? val.get() : val;
 	}
 
-	protected _set(val: T) {
-		if (this._val !== val) {
+	protected _get(): T | BaseObservable<T> {
+		return this._valInput ? this._valInput : this._val;
+	}
+
+	protected _set(val: T | BaseObservable<T>) {
+		// If the value is an observable, add it as an input.
+		// If the previous value was an observable, remove it from the inputs
+		const valInput = val instanceof BaseObservable ? val : undefined;
+		if (this._valInput !== valInput) {
+			if (this._valInput) {
+				this.removeInput(this._valInput);
+			}
+			this._valInput = valInput;
+			if (valInput) {
+				this.addInput(valInput);
+			}
+		}
+
+		const newVal = valInput ? valInput.get() : (val as T);
+		if (this._val !== newVal) {
 			const prevVal = this._val;
-			this._val = val;
+			this._val = newVal;
 			this._dirty = false;
 
 			// Invalidate outputs before notifying listeners.
@@ -35,12 +54,12 @@ class BaseObservable<T> {
 
 			// Notify listeners
 			for (const listener of this._listeners) {
-				listener(val, prevVal);
+				listener(newVal, prevVal);
 			}
 
 			// Refresh outputs that may have changed
 			for (const output of this._outputs) {
-				output._set(output.get());
+				output._set(output._get());
 			}
 		}
 	}
@@ -134,30 +153,8 @@ class BaseObservable<T> {
 }
 
 export class Observable<T> extends BaseObservable<T> {
-	private _valInput: Observable<T> | undefined;
-
 	constructor(val: T | Observable<T>) {
-		super();
-		this._set(val);
-	}
-
-	get(): T {
-		return this.shouldEvaluate() && this._valInput ? this._valInput.get() : super.get();
-	}
-
-	protected _set(val: T | Observable<T>) {
-		if (this._valInput && this._valInput !== val) {
-			this.removeInput(this._valInput);
-			this._valInput = undefined;
-		}
-
-		if (val instanceof Observable) {
-			this._valInput = val;
-			this.addInput(val);
-			super._set(val.get());
-		} else {
-			super._set(val);
-		}
+		super(val);
 	}
 
 	transform<U>(transform: (val: T) => U | Observable<U>): Observable<U> {
@@ -243,12 +240,11 @@ class ComputedObservable<T, U extends Observable<any>[]> extends Observable<T> {
 		computeInputs.forEach(input => this.addInput(input));
 	}
 
-	get(): T {
+	_get(): T | BaseObservable<T> {
 		if (this.shouldEvaluate()) {
-			const val = this._compute(this._computeInputs.map(input => input.get()) as ObservableValues<U>);
-			return val instanceof Observable ? val.get() : val;
+			return this._compute(this._computeInputs.map(input => input.get()) as ObservableValues<U>);
 		} else {
-			return super.get();
+			return super._get();
 		}
 	}
 }
@@ -257,7 +253,7 @@ export function observable<T>(val: T | Observable<T>): WritableObservable<T> {
 	return new WritableObservable(val);
 }
 
-export function memoize<T extends any[], U>(func: (args: T) => U): (args: T) => U {
+function memoize<T extends any[], U>(func: (args: T) => U): (args: T) => U {
 	let lastArgs: T | undefined;
 	let lastResult!: U;
 
