@@ -1,6 +1,6 @@
 {
   "name": "micro-observables",
-  "version": "1.4.0-rc0",
+  "version": "1.4.0-rc1",
   "description": "",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
