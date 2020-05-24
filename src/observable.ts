@@ -1,3 +1,5 @@
+import { getBatchedUpdater } from "./batchedUpdates";
+
 export type Listener<T> = (val: T, prevVal: T) => void;
 export type Unsubscriber = () => void;
 
@@ -212,11 +214,16 @@ export class Observable<T> extends BaseObservable<T> {
 			});
 		});
 	}
+
+	static batch(block: () => void) {
+		const batchedUpdater = getBatchedUpdater();
+		batchedUpdater(block);
+	}
 }
 
 export class WritableObservable<T> extends Observable<T> {
 	set(val: T | Observable<T>) {
-		this._set(val);
+		Observable.batch(() => this._set(val));
 	}
 
 	update(updater: (val: T) => T | Observable<T>) {
