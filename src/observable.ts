@@ -3,7 +3,7 @@ import { getBatchedUpdater } from "./batchedUpdates";
 export type Listener<T> = (val: T, prevVal: T) => void;
 export type Unsubscriber = () => void;
 
-export type ObservableValue<T> = T extends Observable<infer U> ? U : T;
+export type ObservableValue<T> = T extends Observable<infer U> ? U : never;
 export type ObservableValues<T> = { [K in keyof T]: ObservableValue<T[K]> };
 
 class BaseObservable<T> {
@@ -185,7 +185,7 @@ export class Observable<T> extends BaseObservable<T> {
 		return new ComputedObservable(observables, values => values);
 	}
 
-	static latest<T>(...observables: Observable<T>[]): Observable<T> {
+	static latest<T extends Observable<any>[]>(...observables: T): Observable<ObservableValues<T>[number]> {
 		let prevValues: T[] | undefined;
 		return new ComputedObservable(observables, values => {
 			const val = !prevValues ? values[0] : values.find((it, index) => it !== prevValues![index])!;
