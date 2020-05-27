@@ -185,7 +185,7 @@ export class Observable<T> extends BaseObservable<T> {
 		return new ComputedObservable(observables, values => values);
 	}
 
-	static latest<T extends Observable<any>[]>(...observables: T): Observable<ObservableValues<T>[number]> {
+	static latest<T extends Observable<any>[]>(...observables: T): Observable<ObservableValue<T[number]>> {
 		let prevValues: T[] | undefined;
 		return new ComputedObservable(observables, values => {
 			const val = !prevValues ? values[0] : values.find((it, index) => it !== prevValues![index])!;
