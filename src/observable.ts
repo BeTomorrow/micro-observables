@@ -55,7 +55,7 @@ class BaseObservable<T> {
 			}
 
 			// Notify listeners
-			for (const listener of this._listeners) {
+			for (const listener of this._listeners.slice()) {
 				listener(newVal, prevVal);
 			}
 

@@ -69,6 +69,29 @@ test("Listeners added with Observable.onChange() should be removed when calling 
 	expect(received).toStrictEqual(["Pride and Prejudice", "Pride and Prejudice", "Hamlet", "Romeo and Juliet"]);
 });
 
+test("Listeners can be removed as soon as they are invoked without preventing other listeners to be invoked", () => {
+	const book = observable("The Jungle Book");
+
+	const received: string[] = [];
+	const addBookToReceived = (newBook: string) => received.push(newBook);
+	const unsubscribe1 = book.onChange(newBook => {
+		addBookToReceived(newBook);
+		unsubscribe1();
+	});
+	const unsubscribe2 = book.onChange(addBookToReceived);
+	expect(received).toStrictEqual([]);
+
+	book.set("Pride and Prejudice");
+	expect(received).toStrictEqual(["Pride and Prejudice", "Pride and Prejudice"]);
+
+	book.set("Hamlet");
+	expect(received).toStrictEqual(["Pride and Prejudice", "Pride and Prejudice", "Hamlet"]);
+
+	unsubscribe2();
+	book.set("Romeo and Juliet");
+	expect(received).toStrictEqual(["Pride and Prejudice", "Pride and Prejudice", "Hamlet"]);
+});
+
 test("Observable.transform() should create a new observable with the result of the transform applied on the current value", () => {
 	const book = observable({ title: "The Jungle Book", author: "Kipling" });
 	const author = book.transform(it => it.author);
