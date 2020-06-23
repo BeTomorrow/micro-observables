@@ -173,6 +173,10 @@ export class Observable<T> extends BaseObservable<T> {
 		});
 	}
 
+	default(defaultVal: NonNullable<T> | Observable<NonNullable<T>>): Observable<NonNullable<T>> {
+		return this.transform(val => val ?? defaultVal);
+	}
+
 	as<U extends T>(): Observable<U> {
 		return (this as unknown) as Observable<U>;
 	}
