@@ -2,6 +2,7 @@
   "name": "micro-observables",
   "version": "1.4.0-rc4",
   "description": "A simple Observable library that can be used for easy state management in React applications.",
+  "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "scripts": {
     "build": "rimraf lib && tsc -p tsconfig.build.json",
