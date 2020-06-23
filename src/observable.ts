@@ -1,4 +1,4 @@
-import { getBatchedUpdater } from "./batchedUpdates";
+import { getBatchedUpdater } from "./batchedUpdater";
 
 export type Listener<T> = (val: T, prevVal: T) => void;
 export type Unsubscriber = () => void;
