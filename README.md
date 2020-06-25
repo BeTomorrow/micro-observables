@@ -348,7 +348,7 @@ assert.equal(book.get(), undefined);
 book.onChange(book => console.log(`Retrieved book: ${book}));
 ```
 
-### Hooks
+### React Hooks
 
 #### useObservable(observable)
 
