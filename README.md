@@ -8,7 +8,7 @@ _A simple Observable library that can be used for easy state-management in React
 - **⚛️ React support:** Out-of-the-box React support based on React Hooks
 - **🐥 Lightweight:** The whole source code is made of less than 400 lines of code
 - **🔥 Peformant:** Observables are evaluated only when needed. Micro-observables also supports React and React Native batching, minimizing the number of render calls
-- **🔮 Debuggable:** Micro-observables does not rely on ES6 proxies, making it ease to identify lines of code that trigger renders. Code execution is easy to follow, making debugging straightforward
+- **🔮 Debuggable:** Micro-observables does not rely on ES6 proxies, making it easy to identify lines of code that trigger renders. Code execution is easy to follow, making debugging straightforward
 - **🛠 TypeScript support:** Being written entirely in TypeScript, types are first-class citizen
 
 ## Introduction
