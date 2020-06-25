@@ -231,7 +231,7 @@ book.set({ title: "Hamlet", author: "Shakespeare" });
 assert.equal(author.get(), "Shakespeare");
 ```
 
-**Note:** The `transform` function can return another observable. In this case, the transformed observable will be take the value of the returned automatically updated when `newValue` changes.
+**Note:** The `transform` function can return another observable. In this case, the transformed observable will get its value from the returned observable and will be automatically updated when the value from the returned observable changes.
 
 #### Observable.onlyIf(predicate: (value) => boolean)
 
