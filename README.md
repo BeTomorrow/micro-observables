@@ -112,9 +112,11 @@ const AddTodo: React.FC = () => {
 };
 ```
 
+This example can be run on [CodeSandbox](https://codesandbox.io/s/hopeful-sea-jrd9e?file=/src/TodoList.tsx).
+
 ## API
 
-In micro-observables, there are two types of observables: `WritableObservable` and `Observable`. A `WritableObservable` allows to modify its value with the `set()` or `update()` methods. An `Observable` is read-only and can be created from a `WritableObservable` with the `readOnly()`, `transform()` or `onlyIf()` methods.
+In micro-observables, there are two types of observables: `WritableObservable` and `Observable`. A `WritableObservable` allows to modify its value with the `set()` or `update()` methods. An `Observable` is read-only and can be created from a `WritableObservable` with `readOnly()`, `transform()`, `onlyIf()` and other methods.
 
 ### Functions
 
@@ -123,6 +125,8 @@ In micro-observables, there are two types of observables: `WritableObservable` a
 `observable(initialValue)` is a convenient function to create a `WritableObservable`. It is equivalent to `new WritableObservable(initialValue)`.
 
 Wrapping a value with the `observable()` function is all is needed to observe changes of a given value.
+
+**Note:** `initialValue` can be another observable. In this case, the new observable will be automatically updated when `initialValue` changes.
 
 ```ts
 const book = observable("The Jungle Book");
@@ -148,6 +152,8 @@ const book = observable("The Jungle Book");
 book.set("Pride and Prejudice");
 assert.equal(book.get(), "Pride and Prejudice");
 ```
+
+**Note:** `newValue` can be another observable. In this case, the observable will be automatically updated when `newValue` changes.
 
 #### WritableObservable.update(updater: (value) => newValue)
 
@@ -190,18 +196,18 @@ assert.deepEqual(prevReceived, ["The Jungle Book"]);
 Cast the observable into a read-only observable without the `set()` and `update()` methods. This is used for better encapsulation, preventing outside modifications when an observable is exposed.
 
 ```ts
-class BookService {
+class BookStore {
   private _book = observable("The Jungle Book");
 
-  get book() {
-    return this._book.readOnly();
-  }
+  readonly book = this._book.readOnly();
 }
 ```
 
+**Note:** This method only makes sense with TypeScript as the returned observable is the same unchanged observable.
+
 #### Observable.transform(transform)
 
-Create a new observable with the result of the given transform applied on the calling observable. It works the same as `Array.map()`.
+Create a new observable with the result of the given transform applied on the input observable. Each time the input observable changes, the returned observable will reflect this changes.
 
 ```ts
 const book = observable({ title: "The Jungle Book", author: "Kipling" });
@@ -211,9 +217,11 @@ book.set({ title: "Hamlet", author: "Shakespeare" });
 assert.equal(author.get(), "Shakespeare");
 ```
 
+**Note:** The `transform` function can return another observable. In this case, the transformed observable will be take the value of the returned automatically updated when `newValue` changes.
+
 #### Observable.onlyIf(predicate)
 
-Create a new observable that is updated when the value of the calling observable passes the given predicate. When `onlyIf()` is called, if the value of the calling observable doesn't pass the predicate, the new observable is initialized with `undefined`. It works the same as `Array.filter()`.
+Create a new observable that is only updated when the value of the input observable passes the given predicate. When `onlyIf()` is called, if the value of the input observable does not pass the predicate, the new observable is initialized with `undefined`
 
 ```ts
 const counter = observable(0);
@@ -231,16 +239,48 @@ assert.equal(even.get(), 2);
 assert.equal(odd.get(), 1);
 ```
 
+#### Observable.default(defaultValue)
+
+Transform the observable into a new observable that contains the value of the input observable if it is not `undefined` or `null`, or `defaultValue` otherwise. It is equivalent to `observable.transform(val => val ?? defaultValue)`. This is especially useful in combination with `onlyIf()` to provide a value if the predicate does not pass initially.
+
+```ts
+const userLocation = observable<string | null>(null);
+const lastSeenLocation = userLocation.onlyIf(it => it !== null).default("Unknown");
+assert.equal(lastSeenLocation.get(), "Unknown");
+
+userLocation.set("Paris");
+assert.equal(lastSeenLocation.get(), "Paris");
+
+userLocation.set(null);
+assert.equal(lastSeenLocation.get(), "Paris");
+
+userLocation.set("Bordeaux");
+assert.equal(lastSeenLocation.get(), "Bordeaux");
+```
+
+#### Observable.toPromise()
+
+Convert the observable into a promise. The promise will be resolved the next time the observables changes. This is especially useful to `await` a change when you know it will occur.
+
+```ts
+const age = observable(34);
+(async () => {
+  await age.toPromise();
+  console.log("Happy Birthday!");
+})();
+age.set(35);
+```
+
 ### Static Methods
 
-#### Observable.compute(inputObservables, compute: (inputValues) => result)
+#### Observable.from(observable1, observable2, ...)
 
-Create a new observable with the result of the given computation applied on the input observables. This is a more generic version of the instance method `Observable.transform()`, allowing to use several observables as input.
+Take several observables and transform them into a single observable containing an array with the values from each observable. This is often used in combination with `transform()` to compute a new observable from several observables.
 
 ```ts
 const author = observable("Shakespeare");
 const book = observable("Hamlet");
-const bookWithAuthor = Observable.compute([author, book], (a, b) => ({ title: b, author: a }));
+const bookWithAuthor = Observable.from(author, book).transform(([a, b]) => ({ title: b, author: a }));
 assert.deepEqual(bookWithAuthor.get(), { title: "Hamlet", author: "Shakespeare" });
 
 book.set("Romeo and Juliet");
@@ -249,6 +289,20 @@ assert.deepEqual(bookWithAuthor.get(), { title: "Romeo and Juliet", author: "Sha
 author.set("Kipling");
 book.set("The Jungle Book");
 assert.deepEqual(bookWithAuthor.get(), { title: "The Jungle Book", author: "Kipling" });
+```
+
+#### Observable.merge(observables)
+
+Transform an array of observables into a single observable containing an array with the values from each observable. This is almost the identical to `Observable.from()`, except it takes a single array argument while `Observable.from()` takes several arguments.
+
+```ts
+const booksWithId = [
+  { id: 1, book: observable("The Jungle Book") },
+  { id: 2, book: observable("Pride and Prejudice") },
+  { id: 3, book: observable("Hamlet") },
+];
+const books = Observable.merge(booksWithId.map(it => it.book));
+assert.deepEqual(books.get(), ["The Jungle Book", "Pride and Prejudice", "Hamlet"]);
 ```
 
 ### Hooks
