@@ -58,13 +58,18 @@ class TodoStore {
   private _todos = observable<Todo[]>([]);
 
   readonly todos = this._todos.readOnly();
+  readonly pendingTodos = this._todos.transform(todos => todos.filter(it => !it.done));
 
   addTodo(text: string) {
     this._todos.update(todos => [...todos, { text, done: false }]);
   }
 
   toggleTodo(index: number) {
-    this._todos.update(todos => todos.map((todo, i) => (i === index ? { ...todo, done: !todo.done } : todo)));
+    this._todos.update(todos =>
+      todos.map((todo, i) =>
+        i === index ? { ...todo, done: !todo.done } : todo
+      )
+    );
   }
 }
 
@@ -72,10 +77,11 @@ const todoStore = new TodoStore();
 todoStore.addTodo("Eat my brocolli");
 todoStore.addTodo("Plan trip to Bordeaux");
 
-const TodoList: React.FC = () => {
+export const TodoList: React.FC = () => {
   const todos = useObservable(todoStore.todos);
   return (
     <div>
+      <TodoListHeader/>
       <ul>
         {todos.map((todo, index) => (
           <TodoItem key={index} todo={todo} index={index} />
@@ -86,9 +92,17 @@ const TodoList: React.FC = () => {
   );
 };
 
+const TodoListHeader: React.FC = () => {
+  const pendingCount = useComputedObservable(() => todoStore.pendingTodos.transform(it => it.length));
+  return <h3>{pendingCount} pending todos</h3>;
+}
+
 const TodoItem: React.FC<{ todo: Todo; index: number }> = ({ todo, index }) => {
   return (
-    <li style={{ textDecoration: todo.done ? "line-through" : "none" }} onClick={() => todoStore.toggleTodo(index)}>
+    <li
+      style={{ textDecoration: todo.done ? "line-through" : "none" }}
+      onClick={() => todoStore.toggleTodo(index)}
+    >
       {todo.text}
     </li>
   );
