@@ -219,7 +219,7 @@ class BookStore {
 
 **Note:** This method only makes sense with TypeScript as the returned observable is the same unchanged observable.
 
-#### Observable.transform(transform)
+#### Observable.transform(transform: (value) => transformedValue)
 
 Create a new observable with the result of the given transform applied on the input observable. Each time the input observable changes, the returned observable will reflect this changes.
 
@@ -233,9 +233,9 @@ assert.equal(author.get(), "Shakespeare");
 
 **Note:** The `transform` function can return another observable. In this case, the transformed observable will be take the value of the returned automatically updated when `newValue` changes.
 
-#### Observable.onlyIf(predicate)
+#### Observable.onlyIf(predicate: (value) => boolean)
 
-Create a new observable that is only updated when the value of the input observable passes the given predicate. When `onlyIf()` is called, if the value of the input observable does not pass the predicate, the new observable is initialized with `undefined`
+Create a new observable that is only updated when the value of the input observable passes the given predicate. When `onlyIf()` is called, if the current value of the input observable does not pass the predicate, the new observable is initialized with `undefined`
 
 ```ts
 const counter = observable(0);
@@ -255,7 +255,7 @@ assert.equal(odd.get(), 1);
 
 #### Observable.default(defaultValue)
 
-Transform the observable into a new observable that contains the value of the input observable if it is not `undefined` or `null`, or `defaultValue` otherwise. It is equivalent to `observable.transform(val => val ?? defaultValue)`. This is especially useful in combination with `onlyIf()` to provide a value if the predicate does not pass initially.
+Transform the observable into a new observable that contains the value of the input observable if it is not `undefined` or `null`, or `defaultValue` otherwise. It is equivalent to `observable.transform(val => val ?? defaultValue)`. This is especially useful in combination with `onlyIf()` to provide a default value if current value does not initially pass the predicate.
 
 ```ts
 const userLocation = observable<string | null>(null);
@@ -274,7 +274,7 @@ assert.equal(lastSeenLocation.get(), "Bordeaux");
 
 #### Observable.toPromise()
 
-Convert the observable into a promise. The promise will be resolved the next time the observables changes. This is especially useful to `await` a change when you know it will occur.
+Convert the observable into a promise. The promise will be resolved the next time the observable changes. This is especially useful in order to `await` a change from an observable.
 
 ```ts
 const age = observable(34);
@@ -289,7 +289,7 @@ age.set(35);
 
 #### Observable.from(observable1, observable2, ...)
 
-Take several observables and transform them into a single observable containing an array with the values from each observable. This is often used in combination with `transform()` to compute a new observable from several observables.
+Take several observables and transform them into a single observable containing an array with the values from each observable. This is often used in combination with `transform()` to combine several observables into a single one.
 
 ```ts
 const author = observable("Shakespeare");
@@ -307,7 +307,7 @@ assert.deepEqual(bookWithAuthor.get(), { title: "The Jungle Book", author: "Kipl
 
 #### Observable.merge(observables)
 
-Transform an array of observables into a single observable containing an array with the values from each observable. This is almost the identical to `Observable.from()`, except it takes a single array argument while `Observable.from()` takes several arguments.
+Transform an array of observables into a single observable containing an array with the values from each observable. This is almost the identical to `Observable.from()`, except it takes a single array argument while `Observable.from()` takes several observable arguments.
 
 ```ts
 const booksWithId = [
@@ -317,6 +317,19 @@ const booksWithId = [
 ];
 const books = Observable.merge(booksWithId.map(it => it.book));
 assert.deepEqual(books.get(), ["The Jungle Book", "Pride and Prejudice", "Hamlet"]);
+```
+
+#### Observable.fromPromise(promise, onError?: (error) => value)
+Convert the promise into an observable. The observable is initialized with `undefined` and will be updated with the value of the promise when it is resolved. If the promise is rejected, the optional `onError` function is called with the error and should return the value to store in the observable. If no `onError` function is provided, the observable keeps its `undefined` value.
+
+```tsx
+async function fetchBook(title: string): Promise<Book> {
+  // ...
+}
+
+const book = Observable.fromPromise(fetchBook("The Jungle Book"));
+assert.equal(book.get(), undefined);
+book.onChange(book => console.log(`Retrieved book: ${book}));
 ```
 
 ### Hooks
@@ -338,7 +351,7 @@ const TodoList: React.FC = () => {
 };
 ```
 
-#### useComputedObservable(compute: () => Observable, deps)
+#### useComputedObservable(compute: () => Observable, deps?: any[])
 
 Shortcut for `useObservable(useMemo(compute, deps))`. Return the value stored in the observable returned by the `compute` parameter and trigger a re-render when this value changes. The `compute` function is evaluated each time one of the values in `deps` changes.
 
