@@ -1,18 +1,29 @@
 # Micro-observables
 
-_A simple Observable library that can be used for easy state management in React applications._
+_A simple Observable library that can be used for easy state-management in React applications._
+
+## Features
+
+- **💆‍♂️ Easy to learn:** No boilerplate required, write code as you would naturally. Just wrap values that you want to expose to your UI into observables. Micro-observables only exposes a few methods to create and transform observables
+- **⚛️ React support:** Out-of-the-box React support based on React Hooks
+- **🐥 Lightweight:** The whole source code is made of less than 400 lines of code
+- **🔥 Peformant:** Observables are evaluated only when needed. Micro-observables also supports React and React Native batching, minimizing the number of render calls
+- **🔮 Debuggable:** Micro-observables does not rely on ES6 proxies, making it ease to identify lines of code that trigger renders. Code execution is easy to follow, making debugging straightforward
+- **🛠 TypeScript support:** Being written entirely in TypeScript, types are first-class citizen
 
 ## Introduction
 
-In micro-observables, observables are objects that store a single value and that notify listeners when this value changes. If you are used to RxJS, you can think of micro-observables as a React-friendly subset of RxJS exposing only the `BehaviorSubject` class.
+In micro-observables, observables are objects that store a single value. They are used to store **a piece of state** of your app. An observable notifies listeners each time its value changes, triggering a re-render of all components that are using the observable.
 
-Observables can be converted into new observables by applying functions on them, such as `transform()` and `onlyIf()`.
+Observables can be derived into new observables by applying functions on them, such as `transform()`, `onlyIf()` or `default()`.
 
 Micro-observables works great in combination with React thanks to the use of the `useObservable()` and `useComputedObservable()` hooks. It can be used as a simple yet powerful alternative to [Redux](https://redux.js.org) or [MobX](https://mobx.js.org).
 
 Micro-observables has been inspired by the simplicity of [micro-signals](https://github.com/lelandmiller/micro-signals). We recommend checking out this library for event-driven programming.
 
-### Basic usage
+**Note:** If you are used to RxJS, you can think of micro-observables as a React-friendly subset of RxJS exposing only the `BehaviorSubject` class.
+
+## Basic usage
 
 ```ts
 import assert from "assert";
@@ -36,48 +47,69 @@ assert.deepEqual(receivedAuthors, ["Austen", "Shakespeare"]);
 
 ## Using micro-observables with React
 
-Micro-observables works well with React and can be used to replace state-management libraries such as Redux or MobX. It allows to easily keep components in sync with shared state by storing state-values into observables and by using the `useObservable()` and `useComputedObservable()` hooks to access these values.
+Micro-observables works well with React and can be used to replace state-management libraries such as Redux or MobX. It allows to easily keep components in sync with shared state by storing state-values into observables. The `useObservable()` and `useComputedObservable()` hooks are used to access these values from a component.
 
 ### Obligatory TodoList example
 
 ```tsx
-type Todo = { text: string; completed: boolean };
+type Todo = { text: string; done: boolean };
 
-class TodoService {
-    private _todos = observable<Todo[]>([]);
+class TodoStore {
+  private _todos = observable<Todo[]>([]);
 
-    readonly todos = this._todos.readOnly();
+  readonly todos = this._todos.readOnly();
 
-    addTodo(text: string) {
-        this._todos.update(todos => [...todos, { text, completed: false }]);
-    }
+  addTodo(text: string) {
+    this._todos.update(todos => [...todos, { text, done: false }]);
+  }
 
-    toggleTodo(index: number) {
-        this._todos.update(todos => todos.map(
-            (todo, i) => i === index ? { ...todo, completed: !todo.completed } : todo
-        ));
-    }
+  toggleTodo(index: number) {
+    this._todos.update(todos => todos.map((todo, i) => (i === index ? { ...todo, done: !todo.done } : todo)));
+  }
 }
 
-const todoService = new TodoService();
+const todoStore = new TodoStore();
+todoStore.addTodo("Eat my brocolli");
+todoStore.addTodo("Plan trip to Bordeaux");
 
 const TodoList: React.FC = () => {
-    const todos = useObservable(todoService.todos);
-    return <div>
-        <ul>
-            {todos.map((todo, index) => <TodoItem key={index} todo={todo} index={index} />)}
-        </ul>
-    </div>;
+  const todos = useObservable(todoStore.todos);
+  return (
+    <div>
+      <ul>
+        {todos.map((todo, index) => (
+          <TodoItem key={index} todo={todo} index={index} />
+        ))}
+      </ul>
+      <AddTodo />
+    </div>
+  );
 };
 
-const TodoItem: React.FC({ todo: Todo, index: number }) = ({todo, index}) => {
-    return <li
-        style={{ textDecoration: completed ? "line-through" : "none" }}
-        onClick={() => todoService.toggleTodo(index)}
-    >
-        {todo.text}
-    </li>;
-}
+const TodoItem: React.FC<{ todo: Todo; index: number }> = ({ todo, index }) => {
+  return (
+    <li style={{ textDecoration: todo.done ? "line-through" : "none" }} onClick={() => todoStore.toggleTodo(index)}>
+      {todo.text}
+    </li>
+  );
+};
+
+const AddTodo: React.FC = () => {
+  const input = useRef<HTMLInputElement>(null);
+
+  const addTodo = (event: React.FormEvent) => {
+    event.preventDefault();
+    todoStore.addTodo(input.current!.value);
+    input.current!.value = "";
+  };
+
+  return (
+    <form onSubmit={addTodo}>
+      <input ref={input} />
+      <button>Add</button>
+    </form>
+  );
+};
 ```
 
 ## API
@@ -137,8 +169,8 @@ const book = observable("The Jungle Book");
 const received: string[] = [];
 const prevReceived: string[] = [];
 const unsubscribe = book.onChange((newBook, prevBook) => {
-    received.push(newBook);
-    prevReceived.push(prevBook);
+  received.push(newBook);
+  prevReceived.push(prevBook);
 });
 assert.deepEqual(received, []);
 assert.deepEqual(prevReceived, []);
@@ -159,11 +191,11 @@ Cast the observable into a read-only observable without the `set()` and `update(
 
 ```ts
 class BookService {
-    private _book = observable("The Jungle Book");
+  private _book = observable("The Jungle Book");
 
-    get book() {
-        return this._book.readOnly();
-    }
+  get book() {
+    return this._book.readOnly();
+  }
 }
 ```
 
@@ -227,14 +259,14 @@ Return the value stored by the observable and trigger a re-render when the value
 
 ```tsx
 const TodoList: React.FC = () => {
-    const todos = useObservable(todoService.todos);
-    return (
-        <div>
-            {todos.map((todo, index) => (
-                <TodoItem key={index} todo={todo} />
-            ))}
-        </div>
-    );
+  const todos = useObservable(todoService.todos);
+  return (
+    <div>
+      {todos.map((todo, index) => (
+        <TodoItem key={index} todo={todo} />
+      ))}
+    </div>
+  );
 };
 ```
 
@@ -246,26 +278,26 @@ Shortcut for `useObservable(useMemo(compute, deps))`. Return the value stored in
 type Todo = { text: string; completed: boolean; assigneeId: string };
 
 class TodoService {
-    private _todos = observable<Todo[]>([]);
+  private _todos = observable<Todo[]>([]);
 
-    readonly todos = this._todos.readOnly();
+  readonly todos = this._todos.readOnly();
 
-    getTodosAssignedTo(assigneeId: string): Observable<Todo[]> {
-        return this._todos.transform(todos => todos.filter(it => it.assigneeId === assigneeId));
-    }
+  getTodosAssignedTo(assigneeId: string): Observable<Todo[]> {
+    return this._todos.transform(todos => todos.filter(it => it.assigneeId === assigneeId));
+  }
 }
 
 const TodoList: React.FC = () => {
-    const user = useObservable(userService.user);
-    const todos = useComputedObservable(() => todoService.getTodosAssignedTo(user.id), [user.id]);
-    return (
-        <div>
-            <ul>
-                {todos.map((todo, index) => (
-                    <TodoItem key={index} todo={todo} index={index} />
-                ))}
-            </ul>
-        </div>
-    );
+  const user = useObservable(userService.user);
+  const todos = useComputedObservable(() => todoService.getTodosAssignedTo(user.id), [user.id]);
+  return (
+    <div>
+      <ul>
+        {todos.map((todo, index) => (
+          <TodoItem key={index} todo={todo} index={index} />
+        ))}
+      </ul>
+    </div>
+  );
 };
 ```
