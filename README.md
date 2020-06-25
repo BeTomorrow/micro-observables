@@ -55,7 +55,7 @@ Micro-observables works well with React and can be used to replace state-managem
 type Todo = { text: string; done: boolean };
 
 class TodoStore {
-  private _todos = observable<Todo[]>([]);
+  private _todos = observable<readonly Todo[]>([]);
 
   readonly todos = this._todos.readOnly();
   readonly pendingTodos = this._todos.transform(todos => todos.filter(it => !it.done));
@@ -317,6 +317,22 @@ const booksWithId = [
 ];
 const books = Observable.merge(booksWithId.map(it => it.book));
 assert.deepEqual(books.get(), ["The Jungle Book", "Pride and Prejudice", "Hamlet"]);
+```
+
+### Observable.latest(observable1, observable2, ...)
+Take several observables and transform them into a single observable containing the value from the last-modified observable. The returned observable is initialized with the value from the first given observable.
+
+```ts
+const lastMovie = observable("Minority Report");
+const lastTvShow = observable("The Big Bang Theory");
+const lastWatched = Observable.latest(lastMovie, lastTvShow);
+assert.equal(lastWatched.get(), "Minority Report");
+
+lastTvShow.set("Game of Thrones");
+assert.equal(lastWatched.get(), "Game of Thrones");
+
+lastMovie.set("Forrest Gump");
+assert.equal(lastWatched.get(), "Forrest Gump");
 ```
 
 #### Observable.fromPromise(promise, onError?: (error) => value)
