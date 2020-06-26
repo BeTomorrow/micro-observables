@@ -65,11 +65,7 @@ class TodoStore {
   }
 
   toggleTodo(index: number) {
-    this._todos.update(todos =>
-      todos.map((todo, i) =>
-        i === index ? { ...todo, done: !todo.done } : todo
-      )
-    );
+    this._todos.update(todos => todos.map((todo, i) => (i === index ? { ...todo, done: !todo.done } : todo)));
   }
 }
 
@@ -81,7 +77,7 @@ export const TodoList: React.FC = () => {
   const todos = useObservable(todoStore.todos);
   return (
     <div>
-      <TodoListHeader/>
+      <TodoListHeader />
       <ul>
         {todos.map((todo, index) => (
           <TodoItem key={index} todo={todo} index={index} />
@@ -95,14 +91,11 @@ export const TodoList: React.FC = () => {
 const TodoListHeader: React.FC = () => {
   const pendingCount = useComputedObservable(() => todoStore.pendingTodos.transform(it => it.length));
   return <h3>{pendingCount} pending todos</h3>;
-}
+};
 
 const TodoItem: React.FC<{ todo: Todo; index: number }> = ({ todo, index }) => {
   return (
-    <li
-      style={{ textDecoration: todo.done ? "line-through" : "none" }}
-      onClick={() => todoStore.toggleTodo(index)}
-    >
+    <li style={{ textDecoration: todo.done ? "line-through" : "none" }} onClick={() => todoStore.toggleTodo(index)}>
       {todo.text}
     </li>
   );
@@ -127,6 +120,20 @@ const AddTodo: React.FC = () => {
 ```
 
 This example can be run on [CodeSandbox](https://codesandbox.io/s/hopeful-sea-jrd9e?file=/src/TodoList.tsx).
+
+### React Batching
+
+Micro-observables supports React batched updates: when modifying an observable, all re-renders caused by the changes from the observable and its derived observables are batched, minimizing the total amount of re-renders.
+
+Another important benefit of React Batching is that it ensures **consistency** in renders : you can learn more about this on [MobX Github](https://github.com/mobxjs/mobx-react/pull/787#issuecomment-573599793).
+
+By default, batching is disabled as it depends on the platform your app is targeting. To enable it, import one of these files before using micro-observables (typically in your `index.js` file):
+
+**For React DOM:** `import micro-observables/batchingForReactDom`
+
+**For React Native:** `import micro-observables/batchingForReactNative`
+
+**For other platforms:** You can use the custom batching function provided by the platform by calling the `setBatchedUpdater()` function from micro-observables.
 
 ## API
 
@@ -320,6 +327,7 @@ assert.deepEqual(books.get(), ["The Jungle Book", "Pride and Prejudice", "Hamlet
 ```
 
 ### Observable.latest(observable1, observable2, ...)
+
 Take several observables and transform them into a single observable containing the value from the last-modified observable. The returned observable is initialized with the value from the first given observable.
 
 ```ts
@@ -336,6 +344,7 @@ assert.equal(lastWatched.get(), "Forrest Gump");
 ```
 
 #### Observable.fromPromise(promise, onError?: (error) => value)
+
 Convert the promise into an observable. The observable is initialized with `undefined` and will be updated with the value of the promise when it is resolved. If the promise is rejected, the optional `onError` function is called with the error and should return the value to store in the observable. If no `onError` function is provided, the observable keeps its `undefined` value.
 
 ```tsx
@@ -349,6 +358,26 @@ book.onChange(book => console.log(`Retrieved book: ${book}));
 ```
 
 #### Observable.batch(block)
+
+Group several observable modifications for batching. You usually don't need to call this function, but it can sometimes be useful for better control over batching. You can learn more about batching and how to enable it [here](#react-batching).
+
+```tsx
+const location = observable<Location | null>(null);
+const permissionDenied = observable(false);
+
+navigator.geolocation.watchPosition(
+  location =>
+    Observable.batch(l => {
+      location.set(l);
+      permissionDenied.set(false);
+    }),
+  error =>
+    Observable.batch(l => {
+      location.set(null);
+      permissionDenied.set(true);
+    })
+);
+```
 
 ### React Hooks
 
@@ -400,5 +429,3 @@ const TodoList: React.FC = () => {
   );
 };
 ```
-
-### React Batching
