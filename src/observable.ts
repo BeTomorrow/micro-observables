@@ -39,9 +39,7 @@ export class Observable<T> extends BaseObservable<T> {
 		return new DerivedObservable(observables, values => values);
 	}
 
-	static latest<T extends Observable<any>[]>(
-		...observables: T
-	): Observable<ObservableValue<T[number]>> {
+	static latest<T extends Observable<any>[]>(...observables: T): Observable<ObservableValue<T[number]>> {
 		let prevValues: T[] | undefined;
 		return new DerivedObservable(observables, values => {
 			const val = !prevValues ? values[0] : values.find((it, index) => it !== prevValues![index])!;
@@ -120,10 +118,10 @@ class ComputedObservable<T> extends Observable<T> {
 	private _compute: () => T;
 
 	constructor(compute: () => T) {
-		const { inputs, value } = BaseObservable.evaluateAndCaptureInputs(compute);
-		super(value);
+		// There is no need to initialize a ComputedObservable with a proper value as it is re-evaluated each time get() is called.
+		// It is also evaluated when its first listener is added to ensure that prevValue is correct when invoking listeners
+		super(undefined as any);
 		this._compute = compute;
-		this.setInputs(inputs);
 	}
 
 	_get(): T {
