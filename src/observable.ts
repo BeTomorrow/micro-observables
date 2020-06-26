@@ -6,7 +6,10 @@ export type Unsubscriber = () => void;
 export type ObservableValue<T> = T extends Observable<infer U> ? U : never;
 export type ObservableValues<T> = { [K in keyof T]: ObservableValue<T[K]> };
 
-class BaseObservable<T> {
+let capturedInputs: BaseObservable<any>[] | undefined;
+let inputAlreadyCaptured = false;
+
+export class BaseObservable<T> {
 	private _val!: T;
 	private _valInput: BaseObservable<T> | undefined;
 	private _inputs: BaseObservable<any>[] = [];
@@ -20,8 +23,19 @@ class BaseObservable<T> {
 	}
 
 	get(): T {
-		const val = this._get();
-		return val instanceof BaseObservable ? val.get() : val;
+		if (!capturedInputs || inputAlreadyCaptured) {
+			const val = this._get();
+			return val instanceof BaseObservable ? val.get() : val;
+		} else {
+			try {
+				capturedInputs.push(this);
+				inputAlreadyCaptured = true;
+				const val = this._get();
+				return val instanceof BaseObservable ? val.get() : val;
+			} finally {
+				inputAlreadyCaptured = false;
+			}
+		}
 	}
 
 	protected _get(): T | BaseObservable<T> {
@@ -84,14 +98,48 @@ class BaseObservable<T> {
 		return !this._attachedToInputs || this._dirty;
 	}
 
-	protected addInput(input: BaseObservable<any>) {
+	protected static evaluateAndCaptureInputs<T>(
+		block: () => T
+	): { value: T; inputs: BaseObservable<any>[] } {
+		if (capturedInputs) {
+			throw "Calling Observable.compute() from the compute function of another Observable.compute() call is unsupported";
+		}
+		try {
+			capturedInputs = [];
+			const value = block();
+			return { value, inputs: capturedInputs };
+		} finally {
+			capturedInputs = undefined;
+		}
+	}
+
+	protected setInputs(inputs: BaseObservable<any>[]) {
+		// Note: if either inputs or this._inputs contain many items, this could be quite computation-heavy.
+		// Using a Set might help here for these cases
+		const addedInputs =
+			this._inputs.length > 0
+				? inputs.filter(newInput => this._inputs.every(oldInput => oldInput !== newInput))
+				: inputs;
+		const removedInputs =
+			this._inputs.length > 0
+				? this._inputs.filter(oldInput => this._inputs.every(newInput => oldInput !== newInput))
+				: [];
+		for (const input of removedInputs) {
+			this.removeInput(input);
+		}
+		for (const input of addedInputs) {
+			this.addInput(input);
+		}
+	}
+
+	private addInput(input: BaseObservable<any>) {
 		this._inputs.push(input);
 		if (this._attachedToInputs) {
 			this.attachToInput(input);
 		}
 	}
 
-	protected removeInput(input: BaseObservable<any>) {
+	private removeInput(input: BaseObservable<any>) {
 		this._inputs.splice(this._inputs.indexOf(input), 1);
 		if (this._attachedToInputs) {
 			this.detachFromInput(input);
@@ -160,7 +208,7 @@ export class Observable<T> extends BaseObservable<T> {
 	}
 
 	transform<U>(transform: (val: T) => U | Observable<U>): Observable<U> {
-		return new ComputedObservable([this], ([val]) => transform(val));
+		return new DerivedObservable([this], ([val]) => transform(val));
 	}
 
 	onlyIf(predicate: (val: T) => boolean): Observable<T | undefined> {
@@ -182,20 +230,26 @@ export class Observable<T> extends BaseObservable<T> {
 	}
 
 	static from<T extends Observable<any>[]>(...observables: T): Observable<ObservableValues<T>> {
-		return new ComputedObservable(observables, values => values);
+		return new DerivedObservable(observables, values => values);
 	}
 
 	static merge<T>(observables: Observable<T>[]): Observable<T[]> {
-		return new ComputedObservable(observables, values => values);
+		return new DerivedObservable(observables, values => values);
 	}
 
-	static latest<T extends Observable<any>[]>(...observables: T): Observable<ObservableValue<T[number]>> {
+	static latest<T extends Observable<any>[]>(
+		...observables: T
+	): Observable<ObservableValue<T[number]>> {
 		let prevValues: T[] | undefined;
-		return new ComputedObservable(observables, values => {
+		return new DerivedObservable(observables, values => {
 			const val = !prevValues ? values[0] : values.find((it, index) => it !== prevValues![index])!;
 			prevValues = values;
 			return val;
 		});
+	}
+
+	static compute<U>(compute: () => U): Observable<U> {
+		return new ComputedObservable(compute);
 	}
 
 	static fromPromise<T, E = undefined>(
@@ -239,7 +293,7 @@ export class WritableObservable<T> extends Observable<T> {
 	}
 }
 
-class ComputedObservable<T, U extends Observable<any>[]> extends Observable<T> {
+class DerivedObservable<T, U extends Observable<any>[]> extends Observable<T> {
 	private _compute: (vals: ObservableValues<U>) => T | Observable<T>;
 	private _computeInputs: U;
 
@@ -248,7 +302,7 @@ class ComputedObservable<T, U extends Observable<any>[]> extends Observable<T> {
 		super(memoizedCompute(computeInputs.map(input => input.get()) as ObservableValues<U>));
 		this._compute = memoizedCompute;
 		this._computeInputs = computeInputs;
-		computeInputs.forEach(input => this.addInput(input));
+		this.setInputs(computeInputs);
 	}
 
 	_get(): T | BaseObservable<T> {
@@ -257,6 +311,23 @@ class ComputedObservable<T, U extends Observable<any>[]> extends Observable<T> {
 		} else {
 			return super._get();
 		}
+	}
+}
+
+class ComputedObservable<T> extends Observable<T> {
+	private _compute: () => T;
+
+	constructor(compute: () => T) {
+		const { inputs, value } = BaseObservable.evaluateAndCaptureInputs(compute);
+		super(value);
+		this._compute = compute;
+		this.setInputs(inputs);
+	}
+
+	_get(): T {
+		const { inputs, value } = BaseObservable.evaluateAndCaptureInputs(this._compute);
+		this.setInputs(inputs);
+		return value;
 	}
 }
 

@@ -62,11 +62,21 @@ test("Listeners added with Observable.onChange() should be removed when calling 
 
 	unsubscribe1();
 	book.set("Romeo and Juliet");
-	expect(received).toStrictEqual(["Pride and Prejudice", "Pride and Prejudice", "Hamlet", "Romeo and Juliet"]);
+	expect(received).toStrictEqual([
+		"Pride and Prejudice",
+		"Pride and Prejudice",
+		"Hamlet",
+		"Romeo and Juliet",
+	]);
 
 	unsubscribe2();
 	book.set("Macbeth");
-	expect(received).toStrictEqual(["Pride and Prejudice", "Pride and Prejudice", "Hamlet", "Romeo and Juliet"]);
+	expect(received).toStrictEqual([
+		"Pride and Prejudice",
+		"Pride and Prejudice",
+		"Hamlet",
+		"Romeo and Juliet",
+	]);
 });
 
 test("Listeners can be removed as soon as they are invoked without preventing other listeners to be invoked", () => {
@@ -178,7 +188,10 @@ test("Observable.from() should create a new observable containing an array with 
 test("Observable.from().transform() should create a new observable with the result of the computation applied on the given input values", () => {
 	const author = observable("Shakespeare");
 	const title = observable("Hamlet");
-	const bookWithAuthor = Observable.from(author, title).transform(([a, t]) => ({ author: a, title: t }));
+	const bookWithAuthor = Observable.from(author, title).transform(([a, t]) => ({
+		author: a,
+		title: t,
+	}));
 	expect(bookWithAuthor.get()).toStrictEqual({ author: "Shakespeare", title: "Hamlet" });
 
 	title.set("Romeo and Juliet");
@@ -211,6 +224,26 @@ test("Observable.latest() should create a new observable with the value from the
 
 	book2.set("Hamlet");
 	expect(latestBook.get()).toStrictEqual("Hamlet");
+});
+
+test("Observable.compute() should automatically tracks inputs and be updated when an input is modified", () => {
+	const title = observable("Hamlet");
+	const author = observable("Shakespeare");
+	const book = Observable.compute(() => ({ title: title.get(), author: author.get() }));
+	expect(book.get()).toStrictEqual({ author: "Shakespeare", title: "Hamlet" });
+
+	const received: { title: string; author: string }[] = [];
+	book.onChange(b => received.push(b));
+	title.set("Romeo and Juliet");
+	expect(received).toStrictEqual([{ author: "Shakespeare", title: "Romeo and Juliet" }]);
+
+	title.set("Pride and Prejudice");
+	author.set("Jane Austen");
+	expect(received).toStrictEqual([
+		{ author: "Shakespeare", title: "Romeo and Juliet" },
+		{ author: "Shakespeare", title: "Pride and Prejudice" },
+		{ author: "Jane Austen", title: "Pride and Prejudice" },
+	]);
 });
 
 test("Observable.fromPromise() should create a new observable initialized with undefined and changed when the promise is resolved", async () => {
