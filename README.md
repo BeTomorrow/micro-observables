@@ -7,15 +7,15 @@ _A simple Observable library that can be used for easy state-management in React
 - **💆‍♂️ Easy to learn:** No boilerplate required, write code as you would naturally. Just wrap values that you want to expose to your UI into observables. Micro-observables only exposes a few methods to create and transform observables
 - **⚛️ React support:** Out-of-the-box React support based on React Hooks
 - **🐥 Lightweight:** The whole source code is made of less than 400 lines of code
-- **🔥 Peformant:** Observables are evaluated only when needed. Micro-observables also supports React and React Native batching, minimizing the number of render calls
+- **🔥 Peformant:** Observables are evaluated only when needed. Micro-observables also supports [React and React Native batching](#react-batching), minimizing the amount of re-renders
 - **🔮 Debuggable:** Micro-observables does not rely on ES6 proxies, making it easy to identify lines of code that trigger renders. Code execution is easy to follow, making debugging straightforward
 - **🛠 TypeScript support:** Being written entirely in TypeScript, types are first-class citizen
 
 ## Introduction
 
-In micro-observables, observables are objects that store a single value. They are used to store a **piece of state** of your app. An observable notifies listeners each time its value changes, triggering for example a re-render of all components that are using that observable.
+In micro-observables, observables are objects that store a single value. They are used to store a **piece of state** of your app. An observable notifies listeners each time its value changes, triggering a re-render of all components that are using that observable.
 
-Observables can be derived into new observables by applying functions on them, such as `transform()`, `onlyIf()` or `default()`.
+Observables can be easily derived into new observables by applying functions on them, such as `transform()`, `onlyIf()` or `default()`.
 
 Micro-observables works great in combination with React thanks to the use of the `useObservable()` and `useComputedObservable()` hooks. It can be used as a simple yet powerful alternative to [Redux](https://redux.js.org) or [MobX](https://mobx.js.org).
 
