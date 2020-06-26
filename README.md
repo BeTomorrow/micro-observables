@@ -65,7 +65,9 @@ class TodoStore {
   }
 
   toggleTodo(index: number) {
-    this._todos.update(todos => todos.map((todo, i) => (i === index ? { ...todo, done: !todo.done } : todo)));
+    this._todos.update(todos =>
+      todos.map((todo, i) => (i === index ? { ...todo, done: !todo.done } : todo))
+    );
   }
 }
 
@@ -89,13 +91,18 @@ export const TodoList: React.FC = () => {
 };
 
 const TodoListHeader: React.FC = () => {
-  const pendingCount = useComputedObservable(() => todoStore.pendingTodos.transform(it => it.length));
+  const pendingCount = useComputedObservable(() =>
+    todoStore.pendingTodos.transform(it => it.length)
+  );
   return <h3>{pendingCount} pending todos</h3>;
 };
 
 const TodoItem: React.FC<{ todo: Todo; index: number }> = ({ todo, index }) => {
   return (
-    <li style={{ textDecoration: todo.done ? "line-through" : "none" }} onClick={() => todoStore.toggleTodo(index)}>
+    <li
+      style={{ textDecoration: todo.done ? "line-through" : "none" }}
+      onClick={() => todoStore.toggleTodo(index)}
+    >
       {todo.text}
     </li>
   );
@@ -238,7 +245,7 @@ book.set({ title: "Hamlet", author: "Shakespeare" });
 assert.equal(author.get(), "Shakespeare");
 ```
 
-**Note:** The `transform` function can return another observable. In this case, the transformed observable will get its value from the returned observable and will be automatically updated when the value from the returned observable changes.
+**Note:** The provided `transform` function can return another observable. In this case, the transformed observable will get its value from the returned observable and will be automatically updated when the value from the returned observable changes.
 
 #### Observable.onlyIf(predicate: (value) => boolean)
 
@@ -301,7 +308,10 @@ Take several observables and transform them into a single observable containing 
 ```ts
 const author = observable("Shakespeare");
 const book = observable("Hamlet");
-const bookWithAuthor = Observable.from(author, book).transform(([a, b]) => ({ title: b, author: a }));
+const bookWithAuthor = Observable.from(author, book).transform(([a, b]) => ({
+  title: b,
+  author: a,
+}));
 assert.deepEqual(bookWithAuthor.get(), { title: "Hamlet", author: "Shakespeare" });
 
 book.set("Romeo and Juliet");
@@ -400,13 +410,22 @@ const TodoList: React.FC = () => {
 
 #### useComputedObservable(compute: () => Observable, deps?: any[])
 
-Shortcut for `useObservable(useMemo(compute, deps))`. Return the value stored in the observable returned by the `compute` parameter and trigger a re-render when this value changes. The `compute` function is evaluated each time one of the values in `deps` changes.
+Shortcut for `useObservable(useMemo(compute, deps))`. Return the value stored in the observable computed by the `compute` parameter and trigger a re-render when this value changes.
+
+The `compute` function is evaluated each time one of the values in `deps` changes. `deps` defaults to `[]` if it not specified, resulting in the `compute` function being called only once.
 
 ```tsx
+type User = { id: string; displayName: string };
 type Todo = { text: string; completed: boolean; assigneeId: string };
 
-class TodoService {
-  private _todos = observable<Todo[]>([]);
+class UserStore {
+  private _user = observable<User>();
+
+  readonly user = this._user.readOnly();
+}
+
+class TodoStore {
+  private _todos = observable<readonly Todo[]>([]);
 
   readonly todos = this._todos.readOnly();
 
@@ -416,8 +435,9 @@ class TodoService {
 }
 
 const TodoList: React.FC = () => {
-  const user = useObservable(userService.user);
-  const todos = useComputedObservable(() => todoService.getTodosAssignedTo(user.id), [user.id]);
+  const todos = useComputedObservable(() =>
+    userStore.user.transform(user => todoStore.getTodosAssignedTo(user.id))
+  );
   return (
     <div>
       <ul>
@@ -429,3 +449,5 @@ const TodoList: React.FC = () => {
   );
 };
 ```
+
+**Note:** `useComputedObservable()` is an optimized version of `useObservable()` that avoids recreating a new observable and reevaluating its value at each render. It will **not decrease the amount of renders**. Most of the time, you actually don't even need it, creating an observable is a fast operation and if your observable evaluation does not require heavy computation and you can use `useObservable()` instead.
