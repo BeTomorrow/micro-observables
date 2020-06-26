@@ -134,9 +134,9 @@ Another important benefit of React Batching is that it ensures **consistency** i
 
 By default, batching is disabled as it depends on the platform your app is targeting. To enable it, import one of these files before using micro-observables (typically in your `index.js` file):
 
-**For React DOM:** `import micro-observables/batchingForReactDom`
+**For React DOM:** `import "micro-observables/batchingForReactDom"`
 
-**For React Native:** `import micro-observables/batchingForReactNative`
+**For React Native:** `import "micro-observables/batchingForReactNative"`
 
 **For other platforms:** You can use the custom batching function provided by the platform by calling the `setBatchedUpdater()` function from micro-observables.
 
