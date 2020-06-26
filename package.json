@@ -1,6 +1,6 @@
 {
   "name": "micro-observables",
-  "version": "1.4.0-rc5",
+  "version": "1.4.0",
   "description": "A simple Observable library that can be used for easy state management in React applications.",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
