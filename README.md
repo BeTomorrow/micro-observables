@@ -448,4 +448,4 @@ const TodoList: React.FC = () => {
 };
 ```
 
-**Note:** `useComputedObservable()` is an optimized version of `useObservable()` that avoids recreating a new observable and reevaluating its value at each render. It will **not decrease the amount of renders**. Most of the time, you actually don't even need it, creating an observable is a fast operation and if your observable evaluation does not require heavy computation and you can use `useObservable()` instead.
+**Note:** `useComputedObservable()` is an optimized version of `useObservable()` that avoids recreating a new observable and reevaluating its value at each render. It will **not decrease the amount of renders**. Most of the time, you actually don't even need it, creating an observable is a fast operation and if your observable evaluation does not require heavy computation, you can use `useObservable()` instead.
