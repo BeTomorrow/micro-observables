@@ -118,12 +118,8 @@ export class BaseObservable<T> {
 			}
 		}
 
-		for (const input of removedInputs) {
-			this.removeInput(input);
-		}
-		for (const input of addedInputs) {
-			this.addInput(input);
-		}
+		removedInputs.forEach(input => this.removeInput(input));
+		addedInputs.forEach(input => this.addInput(input));
 	}
 
 	protected addInput(input: BaseObservable<any>) {

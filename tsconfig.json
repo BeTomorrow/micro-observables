@@ -8,7 +8,6 @@
 		"sourceMap": false,
 		"strict": true,
 		"esModuleInterop": true,
-		"downlevelIteration": true,
 		"noUnusedLocals": true,
 		"noUnusedParameters": true,
 		"noImplicitReturns": true,
