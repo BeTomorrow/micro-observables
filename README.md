@@ -125,7 +125,7 @@ This example can be run on [CodeSandbox](https://codesandbox.io/s/hopeful-sea-jr
 
 Micro-observables supports React batched updates: when modifying an observable, all re-renders caused by the changes from the observable and its derived observables are batched, minimizing the total amount of re-renders.
 
-Another important benefit of React Batching is that it ensures **consistency** in renders : you can learn more about this on [MobX Github](https://github.com/mobxjs/mobx-react/pull/787#issuecomment-573599793).
+Another important benefit of React Batching is that it ensures **consistency** in renders: you can learn more about this on [MobX Github](https://github.com/mobxjs/mobx-react/pull/787#issuecomment-573599793).
 
 By default, batching is disabled as it depends on the platform your app is targeting. To enable it, import one of these files before using micro-observables (typically in your `index.js` file):
 
@@ -326,7 +326,7 @@ const books = Observable.merge(booksWithId.map(it => it.book));
 assert.deepEqual(books.get(), ["The Jungle Book", "Pride and Prejudice", "Hamlet"]);
 ```
 
-### Observable.latest(observable1, observable2, ...)
+#### Observable.latest(observable1, observable2, ...)
 
 Take several observables and transform them into a single observable containing the value from the last-modified observable. The returned observable is initialized with the value from the first given observable.
 
