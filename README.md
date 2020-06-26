@@ -13,7 +13,7 @@ _A simple Observable library that can be used for easy state-management in React
 
 ## Introduction
 
-In micro-observables, observables are objects that store a single value. They are used to store **a piece of state** of your app. An observable notifies listeners each time its value changes, triggering a re-render of all components that are using the observable.
+In micro-observables, observables are objects that store a single value. They are used to store a **piece of state** of your app. An observable notifies listeners each time its value changes, triggering for example a re-render of all components that are using that observable.
 
 Observables can be derived into new observables by applying functions on them, such as `transform()`, `onlyIf()` or `default()`.
 
@@ -47,7 +47,7 @@ assert.deepEqual(receivedAuthors, ["Austen", "Shakespeare"]);
 
 ## Using micro-observables with React
 
-Micro-observables works well with React and can be used to replace state-management libraries such as Redux or MobX. It allows to easily keep components in sync with shared state by storing state-values into observables. The `useObservable()` and `useComputedObservable()` hooks are used to access these values from a component.
+Micro-observables works great with React and can be used to replace state-management libraries such as Redux or MobX. It allows to easily keep components in sync with shared state by storing pieces of state into observables. The `useObservable()` and `useComputedObservable()` hooks are used to access these values from a component.
 
 ### Obligatory TodoList example
 
@@ -348,6 +348,8 @@ assert.equal(book.get(), undefined);
 book.onChange(book => console.log(`Retrieved book: ${book}));
 ```
 
+#### Observable.batch(block)
+
 ### React Hooks
 
 #### useObservable(observable)
@@ -398,3 +400,5 @@ const TodoList: React.FC = () => {
   );
 };
 ```
+
+### React Batching
