@@ -1,5 +1,5 @@
-import { getBatchedUpdater } from "./batchedUpdater";
 import { BaseObservable } from "./baseObservable";
+import { getBatchedUpdater } from "./batchedUpdater";
 
 export type ObservableValue<T> = T extends Observable<infer U> ? U : never;
 export type ObservableValues<T> = { [K in keyof T]: ObservableValue<T[K]> };
@@ -102,7 +102,9 @@ class DerivedObservable<T, U extends Observable<any>[]> extends Observable<T> {
 		super(memoizedCompute(computeInputs.map(input => input.get()) as ObservableValues<U>));
 		this._compute = memoizedCompute;
 		this._computeInputs = computeInputs;
-		this.setInputs(computeInputs);
+		for (const input of computeInputs) {
+			this.addInput(input);
+		}
 	}
 
 	_get(): T | BaseObservable<T> {

@@ -1,7 +1,7 @@
 export type Listener<T> = (val: T, prevVal: T) => void;
 export type Unsubscriber = () => void;
 
-let capturedInputs: BaseObservable<any>[] | undefined;
+let capturedInputs: Set<BaseObservable<any>> | undefined;
 let inputAlreadyCaptured = false;
 
 export class BaseObservable<T> {
@@ -22,8 +22,8 @@ export class BaseObservable<T> {
 			const val = this._get();
 			return val instanceof BaseObservable ? val.get() : val;
 		} else {
+			capturedInputs.add(this);
 			try {
-				capturedInputs.push(this);
 				inputAlreadyCaptured = true;
 				const val = this._get();
 				return val instanceof BaseObservable ? val.get() : val;
@@ -93,14 +93,12 @@ export class BaseObservable<T> {
 		return !this._attachedToInputs || this._dirty;
 	}
 
-	protected static evaluateAndCaptureInputs<T>(
-		block: () => T
-	): { value: T; inputs: BaseObservable<any>[] } {
+	protected static evaluateAndCaptureInputs<T>(block: () => T): { value: T; inputs: Set<BaseObservable<any>> } {
 		if (capturedInputs) {
 			throw "Calling Observable.compute() from the compute function of another Observable.compute() call is unsupported";
 		}
 		try {
-			capturedInputs = [];
+			capturedInputs = new Set();
 			const value = block();
 			return { value, inputs: capturedInputs };
 		} finally {
@@ -108,17 +106,18 @@ export class BaseObservable<T> {
 		}
 	}
 
-	protected setInputs(inputs: BaseObservable<any>[]) {
-		// Note: if either inputs or this._inputs contain many items, this could be quite computation-heavy.
-		// Using a Set might help here for these cases
-		const addedInputs =
-			this._inputs.length > 0
-				? inputs.filter(newInput => this._inputs.every(oldInput => oldInput !== newInput))
-				: inputs;
-		const removedInputs =
-			this._inputs.length > 0
-				? this._inputs.filter(oldInput => this._inputs.every(newInput => oldInput !== newInput))
-				: [];
+	protected setInputs(inputs: Set<BaseObservable<any>>) {
+		const addedInputs = inputs;
+		const removedInputs: BaseObservable<any>[] = [];
+
+		for (const oldInput of this._inputs) {
+			if (inputs.has(oldInput)) {
+				addedInputs.delete(oldInput);
+			} else {
+				removedInputs.push(oldInput);
+			}
+		}
+
 		for (const input of removedInputs) {
 			this.removeInput(input);
 		}
@@ -127,14 +126,14 @@ export class BaseObservable<T> {
 		}
 	}
 
-	private addInput(input: BaseObservable<any>) {
+	protected addInput(input: BaseObservable<any>) {
 		this._inputs.push(input);
 		if (this._attachedToInputs) {
 			this.attachToInput(input);
 		}
 	}
 
-	private removeInput(input: BaseObservable<any>) {
+	protected removeInput(input: BaseObservable<any>) {
 		this._inputs.splice(this._inputs.indexOf(input), 1);
 		if (this._attachedToInputs) {
 			this.detachFromInput(input);
