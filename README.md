@@ -91,9 +91,7 @@ export const TodoList: React.FC = () => {
 };
 
 const TodoListHeader: React.FC = () => {
-  const pendingCount = useComputedObservable(() =>
-    todoStore.pendingTodos.transform(it => it.length)
-  );
+  const pendingCount = useObservable(todoStore.pendingTodos.transform(it => it.length));
   return <h3>{pendingCount} pending todos</h3>;
 };
 
