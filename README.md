@@ -393,7 +393,7 @@ navigator.geolocation.watchPosition(
 
 #### useObservable(observable)
 
-Return the value stored by the observable and trigger a re-render when the value changes.
+Return the value of the observable and trigger a re-render when the value changes.
 
 ```tsx
 const TodoList: React.FC = () => {
@@ -410,9 +410,9 @@ const TodoList: React.FC = () => {
 
 #### useComputedObservable(compute: () => Observable, deps?: any[])
 
-Shortcut for `useObservable(useMemo(compute, deps))`. Return the value stored in the observable computed by the `compute` parameter and trigger a re-render when this value changes.
+Shortcut for `useObservable(useMemo(compute, deps))`. Return the value of the observable computed by the `compute` parameter and trigger a re-render when this value changes.
 
-The `compute` function is evaluated each time one of the values in `deps` changes. `deps` defaults to `[]` if it not specified, resulting in the `compute` function being called only once.
+The `compute` function is evaluated each time one of the values in `deps` changes. If unspecified, `deps` defaults to `[]`, resulting in the `compute` function being called only once.
 
 ```tsx
 type User = { id: string; displayName: string };
