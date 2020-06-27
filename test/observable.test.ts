@@ -62,21 +62,11 @@ test("Listeners added with Observable.onChange() should be removed when calling 
 
 	unsubscribe1();
 	book.set("Romeo and Juliet");
-	expect(received).toStrictEqual([
-		"Pride and Prejudice",
-		"Pride and Prejudice",
-		"Hamlet",
-		"Romeo and Juliet",
-	]);
+	expect(received).toStrictEqual(["Pride and Prejudice", "Pride and Prejudice", "Hamlet", "Romeo and Juliet"]);
 
 	unsubscribe2();
 	book.set("Macbeth");
-	expect(received).toStrictEqual([
-		"Pride and Prejudice",
-		"Pride and Prejudice",
-		"Hamlet",
-		"Romeo and Juliet",
-	]);
+	expect(received).toStrictEqual(["Pride and Prejudice", "Pride and Prejudice", "Hamlet", "Romeo and Juliet"]);
 });
 
 test("Listeners can be removed as soon as they are invoked without preventing other listeners to be invoked", () => {

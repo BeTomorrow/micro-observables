@@ -2,12 +2,18 @@
   "name": "micro-observables",
   "version": "1.5.0-rc3",
   "description": "A simple Observable library that can be used for easy state management in React applications.",
-  "main": "lib/index.js",
-  "typings": "lib/index.d.ts",
+  "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
+  "module": "dist/micro-observables.esm.js",
   "scripts": {
-    "build": "rimraf lib && tsc -p tsconfig.build.json",
-    "test": "jest",
-    "prepublishOnly": "npm run test && npm run build"
+    "start": "tsdx watch",
+    "build": "tsdx build",
+    "test": "tsdx test",
+    "lint": "tsdx lint",
+    "prepare": "tsdx build"
+  },
+  "engines": {
+    "node": ">=10"
   },
   "repository": {
     "type": "git",
@@ -19,21 +25,30 @@
     "url": "https://github.com/BeTomorrow/micro-observables/issues"
   },
   "homepage": "https://github.com/BeTomorrow/micro-observables#readme",
+  "husky": {
+    "hooks": {
+      "pre-commit": "tsdx lint"
+    }
+  },
+  "prettier": {
+    "useTabs": true,
+    "printWidth": 120,
+    "trailingComma": "es5"
+  },
   "peerDependencies": {
     "react": "^16.8.0"
   },
   "devDependencies": {
-    "@types/jest": "^24.0.24",
-    "@types/react": "^16.9.9",
-    "jest": "^24.9.0",
-    "prettier": "^1.19.1",
-    "rimraf": "^3.0.0",
-    "ts-jest": "^24.2.0",
+    "@types/react": "^16.9.41",
+    "husky": "^4.2.5",
+    "tsdx": "^0.13.2",
+    "tslib": "^2.0.0",
     "typescript": "^3.9.5"
   },
   "dependencies": {},
   "files": [
-    "lib/",
+    "dist",
+    "src",
     "batching*"
   ],
   "keywords": [

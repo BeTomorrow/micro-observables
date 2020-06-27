@@ -95,7 +95,9 @@ export class BaseObservable<T> {
 
 	protected static evaluateAndCaptureInputs<T>(block: () => T): { value: T; inputs: Set<BaseObservable<any>> } {
 		if (capturedInputs) {
-			throw "Calling Observable.compute() from the compute function of another Observable.compute() call is unsupported";
+			throw Error(
+				"Calling Observable.compute() from the compute function of another Observable.compute() call is unsupported"
+			);
 		}
 		try {
 			capturedInputs = new Set();

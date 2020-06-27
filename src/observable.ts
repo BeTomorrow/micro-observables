@@ -5,10 +5,6 @@ export type ObservableValue<T> = T extends Observable<infer U> ? U : never;
 export type ObservableValues<T> = { [K in keyof T]: ObservableValue<T[K]> };
 
 export class Observable<T> extends BaseObservable<T> {
-	constructor(val: T | Observable<T>) {
-		super(val);
-	}
-
 	transform<U>(transform: (val: T) => U | Observable<U>): Observable<U> {
 		return new DerivedObservable([this], ([val]) => transform(val));
 	}
