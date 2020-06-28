@@ -6,7 +6,7 @@ _A simple Observable library that can be used for easy state-management in React
 
 - **💆‍♂️ Easy to learn:** No boilerplate required, write code as you would naturally. Just wrap values that you want to expose to your UI into observables. Micro-observables only exposes a few methods to create and transform observables
 - **⚛️ React support:** Out-of-the-box React support based on React Hooks
-- **🐥 Lightweight:** The whole source code is made of less than 400 lines of code, resulting in **6kb** production bundle
+- **🐥 Lightweight:** The whole source code is made of less than 400 lines of code, resulting in a **6kb** production bundle
 - **🔥 Peformant:** Observables are evaluated only when needed. Micro-observables also supports [React and React Native batching](#react-batching), minimizing the amount of re-renders
 - **🔮 Debuggable:** Micro-observables does not rely on ES6 proxies, making it easy to identify lines of code that trigger renders. Code execution is easy to follow, making debugging straightforward
 - **🛠 TypeScript support:** Being written entirely in TypeScript, types are first-class citizen
@@ -351,6 +351,33 @@ lastMovie.set("Forrest Gump");
 assert.equal(lastWatched.get(), "Forrest Gump");
 ```
 
+#### Observable.compute(compute: () => value)
+
+`Observable.compute()` is your **silver bullet** when it is too difficult to create a new observable with the usual `transform()`, `onlyIf()`, `from()` or `latest()` methods. It is especially useful when dealing with complex data structures. It takes a function that computes a new value by directly accessing values from other observables and returns a new observable containing the result of this computation.
+
+**How it works:** Each time the observable is evaluated, it calls the provided `compute` function and automatically tracks the observables that are used by the computation. It then registers these observables as input, ensuring that the new observable will be updated if one of them changes. If you are familiar with MobX, it works the same as the `@computed` observables.
+
+```ts
+const authors = new Map([
+  [0, observable("Kipling")],
+  [1, observable("Shakespeare")],
+  [2, observable("Austen")],
+]);
+const books = observable([
+  { title: "The Jungle Book", authorId: 0 },
+  { title: "Pride and Prejudice", authorId: 2 },
+  { title: "Persuasion", authorId: 2 },
+]);
+const booksWithAuthors = Observable.compute(() =>
+  books.get().map(book => ({ title: book.title, author: authors.get(book.authorId).get() }))
+);
+assert.deepEqual(booksWithAuthors.get(), [
+  { title: "The Jungle Book", author: "Kipling" },
+  { title: "Pride and Prejudice", author: "Austen" },
+  { title: "Persuasion", author: "Austen" },
+]);
+```
+
 #### Observable.fromPromise(promise, onError?: (error) => value)
 
 Convert the promise into an observable. The observable is initialized with `undefined` and will be updated with the value of the promise when it is resolved. If the promise is rejected, the optional `onError` function is called with the error and should return the value to store in the observable. If no `onError` function is provided, the observable keeps its `undefined` value.
@@ -365,7 +392,7 @@ assert.equal(book.get(), undefined);
 book.onChange(book => console.log(`Retrieved book: ${book}));
 ```
 
-#### Observable.batch(block)
+#### Observable.batch(block: () => void)
 
 Group several observable modifications for batching. You usually don't need to call this function, but it can sometimes be useful for better control over batching. You can learn more about batching and how to enable it [here](#react-batching).
 
@@ -375,12 +402,12 @@ const permissionDenied = observable(false);
 
 navigator.geolocation.watchPosition(
   location =>
-    Observable.batch(l => {
-      location.set(l);
+    Observable.batch(() => {
+      location.set(location);
       permissionDenied.set(false);
     }),
   error =>
-    Observable.batch(l => {
+    Observable.batch(() => {
       location.set(null);
       permissionDenied.set(true);
     })

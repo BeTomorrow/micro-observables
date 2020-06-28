@@ -228,11 +228,11 @@ test("Observable.compute() should automatically tracks inputs and be updated whe
 	expect(received).toStrictEqual([{ author: "Shakespeare", title: "Romeo and Juliet" }]);
 
 	title.set("Pride and Prejudice");
-	author.set("Jane Austen");
+	author.set("Austen");
 	expect(received).toStrictEqual([
 		{ author: "Shakespeare", title: "Romeo and Juliet" },
 		{ author: "Shakespeare", title: "Pride and Prejudice" },
-		{ author: "Jane Austen", title: "Pride and Prejudice" },
+		{ author: "Austen", title: "Pride and Prejudice" },
 	]);
 
 	const bookTitleLength = Observable.compute(() => book.get().title.length);
