@@ -94,9 +94,11 @@ class DerivedObservable<T, U extends Observable<any>[]> extends Observable<T> {
 	private _computeInputs: U;
 
 	constructor(computeInputs: U, compute: (vals: ObservableValues<U>) => T | Observable<T>) {
-		const memoizedCompute = memoize(compute);
-		super(memoizedCompute(computeInputs.map(input => input.get()) as ObservableValues<U>));
-		this._compute = memoizedCompute;
+		// There is no need to initialize a DerivedObservable with its initial value as it is evaluated each time get()
+		// is called when there is no listeners. It is also evaluated when its first listener is added to ensure that
+		// prevValue is correct when invoking listeners
+		super(undefined as any);
+		this._compute = memoize(compute);
 		this._computeInputs = computeInputs;
 		for (const input of computeInputs) {
 			this.addInput(input);
@@ -116,16 +118,22 @@ class ComputedObservable<T> extends Observable<T> {
 	private _compute: () => T;
 
 	constructor(compute: () => T) {
-		// There is no need to initialize a ComputedObservable with a proper value as it is re-evaluated each time get() is called.
-		// It is also evaluated when its first listener is added to ensure that prevValue is correct when invoking listeners
 		super(undefined as any);
 		this._compute = compute;
 	}
 
-	_get(): T {
-		const { inputs, value } = BaseObservable.evaluateAndCaptureInputs(this._compute);
-		this.setInputs(inputs);
-		return value;
+	_get(): T | BaseObservable<T> {
+		if (this.shouldEvaluate()) {
+			if (this.isAttachedToInputs()) {
+				let value!: T;
+				this.setInputs(BaseObservable.captureInputs(() => (value = this._compute())));
+				return value;
+			} else {
+				return this._compute();
+			}
+		} else {
+			return super._get();
+		}
 	}
 }
 

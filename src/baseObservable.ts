@@ -1,8 +1,8 @@
 export type Listener<T> = (val: T, prevVal: T) => void;
 export type Unsubscriber = () => void;
 
-let capturedInputs: Set<BaseObservable<any>> | undefined;
-let inputAlreadyCaptured = false;
+const capturedInputFrames: Set<BaseObservable<any>>[] = [];
+let shouldCaptureNextInput = false;
 
 export class BaseObservable<T> {
 	private _val!: T;
@@ -14,21 +14,22 @@ export class BaseObservable<T> {
 	private _dirty = false;
 
 	constructor(val: T | BaseObservable<T>) {
-		this._set(val);
+		this._setVal(val);
 	}
 
 	get(): T {
-		if (!capturedInputs || inputAlreadyCaptured) {
+		const capturedInputs = capturedInputFrames[capturedInputFrames.length - 1];
+		if (!capturedInputs || !shouldCaptureNextInput) {
 			const val = this._get();
 			return val instanceof BaseObservable ? val.get() : val;
 		} else {
 			capturedInputs.add(this);
 			try {
-				inputAlreadyCaptured = true;
+				shouldCaptureNextInput = false;
 				const val = this._get();
 				return val instanceof BaseObservable ? val.get() : val;
 			} finally {
-				inputAlreadyCaptured = false;
+				shouldCaptureNextInput = true;
 			}
 		}
 	}
@@ -38,6 +39,25 @@ export class BaseObservable<T> {
 	}
 
 	protected _set(val: T | BaseObservable<T>) {
+		const change = this._setVal(val);
+		if (change) {
+			// Invalidate outputs before notifying listeners.
+			// This way, if get() is called on an output from a listener, it'll be already up-to-date
+			this.invalidateOutputs();
+
+			// Notify listeners
+			for (const listener of this._listeners.slice()) {
+				listener(change.newVal, change.prevVal);
+			}
+
+			// Refresh outputs that may have changed
+			for (const output of this._outputs) {
+				output._set(output._get());
+			}
+		}
+	}
+
+	protected _setVal(val: T | BaseObservable<T>): { newVal: T; prevVal: T } | undefined {
 		// If the value is an observable, add it as an input.
 		// If the previous value was an observable, remove it from the inputs
 		const valInput = val instanceof BaseObservable ? val : undefined;
@@ -56,22 +76,9 @@ export class BaseObservable<T> {
 			const prevVal = this._val;
 			this._val = newVal;
 			this._dirty = false;
-
-			// Invalidate outputs before notifying listeners.
-			// This way, if get() is called on an outputs from a listener, it'll be already up-to-date
-			for (const output of this._outputs) {
-				output.invalidate();
-			}
-
-			// Notify listeners
-			for (const listener of this._listeners.slice()) {
-				listener(newVal, prevVal);
-			}
-
-			// Refresh outputs that may have changed
-			for (const output of this._outputs) {
-				output._set(output._get());
-			}
+			return { newVal, prevVal };
+		} else {
+			return undefined;
 		}
 	}
 
@@ -93,18 +100,15 @@ export class BaseObservable<T> {
 		return !this._attachedToInputs || this._dirty;
 	}
 
-	protected static evaluateAndCaptureInputs<T>(block: () => T): { value: T; inputs: Set<BaseObservable<any>> } {
-		if (capturedInputs) {
-			throw Error(
-				"Calling Observable.compute() from the compute function of another Observable.compute() call is unsupported"
-			);
-		}
+	protected static captureInputs<T>(block: () => T): Set<BaseObservable<any>> {
 		try {
-			capturedInputs = new Set();
-			const value = block();
-			return { value, inputs: capturedInputs };
+			capturedInputFrames.push(new Set());
+			shouldCaptureNextInput = true;
+			block();
+			return capturedInputFrames[capturedInputFrames.length - 1];
 		} finally {
-			capturedInputs = undefined;
+			capturedInputFrames.pop();
+			shouldCaptureNextInput = false;
 		}
 	}
 
@@ -138,6 +142,10 @@ export class BaseObservable<T> {
 		}
 	}
 
+	protected isAttachedToInputs(): boolean {
+		return this._attachedToInputs;
+	}
+
 	private shouldAttachToInputs(): boolean {
 		// Only attach to inputs when at least one listener is subscribed to the observable or to one of its outputs.
 		// This is done to avoid unused observables being references by their inputs, preventing garbage-collection.
@@ -146,16 +154,17 @@ export class BaseObservable<T> {
 
 	private attachToInputs() {
 		if (!this._attachedToInputs && this.shouldAttachToInputs()) {
+			this._attachedToInputs = true;
+
+			// Since the observable was not attached to its inputs, its value may be outdated.
+			// Refresh it so that onChange() will be called with the correct prevValue the next time an input changes.
+			this._dirty = true;
+			this._setVal(this._get());
+
 			for (const input of this._inputs) {
 				this.attachToInput(input);
 				input.attachToInputs();
 			}
-
-			// Since the observable was not attached to its inputs, its value may be outdated.
-			// Refresh it so that onChange() will be called with the correct prevValue the next time an input changes.
-			this._val = this.get();
-			this._dirty = false;
-			this._attachedToInputs = true;
 		}
 	}
 

@@ -234,6 +234,17 @@ test("Observable.compute() should automatically tracks inputs and be updated whe
 		{ author: "Shakespeare", title: "Pride and Prejudice" },
 		{ author: "Jane Austen", title: "Pride and Prejudice" },
 	]);
+
+	const bookTitleLength = Observable.compute(() => book.get().title.length);
+	expect(bookTitleLength.get()).toStrictEqual(19);
+
+	const receivedLength: number[] = [];
+	bookTitleLength.onChange(l => receivedLength.push(l));
+	title.set("Prejudice and Pride");
+	expect(receivedLength).toStrictEqual([]);
+
+	title.set("Persuasion");
+	expect(receivedLength).toStrictEqual([10]);
 });
 
 test("Observable.fromPromise() should create a new observable initialized with undefined and changed when the promise is resolved", async () => {
