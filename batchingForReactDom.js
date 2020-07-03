@@ -1,2 +1,2 @@
 const ReactDOM = require("react-dom");
-require("./lib").setBatchedUpdater(ReactDOM.unstable_batchedUpdates);
+require("./dist").setBatchedUpdater(ReactDOM.unstable_batchedUpdates);
