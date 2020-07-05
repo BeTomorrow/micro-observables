@@ -53,9 +53,9 @@
   ],
   "keywords": [
     "observable",
-    "signal",
     "typescript",
     "react",
+    "state",
     "hook"
   ]
 }

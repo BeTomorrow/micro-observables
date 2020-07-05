@@ -396,24 +396,19 @@ book.onChange(book => console.log(`Retrieved book: ${book}));
 
 #### Observable.batch(block: () => void)
 
-Group several observable modifications for batching. You usually don't need to call this function, but it can sometimes be useful for better control over batching. You can learn more about batching and how to enable it [here](#react-batching).
+Group together several observable modifications. It ensures that listeners from any derived observable are only called once which might be useful for data consistency or for performance.
+
+Additionally, if React batching is enabled, it batches re-renders together. You can learn more about React batching and how to enable it [here](#react-batching).
 
 ```tsx
-const location = observable<Location | null>(null);
-const permissionDenied = observable(false);
+const numbers = [...Array(10)].map((_, index) => observable(index));
+const total = Observable.compute(() => numbers.reduce((a, b) => a.get() + b.get()));
+expect(total.get()).toStrictEqual(45);
 
-navigator.geolocation.watchPosition(
-  location =>
-    Observable.batch(() => {
-      location.set(location);
-      permissionDenied.set(false);
-    }),
-  error =>
-    Observable.batch(() => {
-      location.set(null);
-      permissionDenied.set(true);
-    })
-);
+// Listeners of "total" will only be called once, with the final result.
+// Without batching(), it would have been called 10 times
+total.onChange(val => assert.equal(val, 65));
+Observable.batch(() => numbers.forEach(num => num.update(it => it + 1)));
 ```
 
 ### React Hooks
