@@ -1,10 +1,25 @@
 import { BaseObservable } from "./baseObservable";
-import { getBatchedUpdater } from "./batchedUpdater";
+import { memoize } from "./memoize";
 
 export type ObservableValue<T> = T extends Observable<infer U> ? U : never;
 export type ObservableValues<T> = { [K in keyof T]: ObservableValue<T[K]> };
 
+export function observable<T>(val: T | Observable<T>): WritableObservable<T> {
+	return new WritableObservable(val);
+}
+
 export class Observable<T> extends BaseObservable<T> {
+	protected _valInput: Observable<T> | undefined;
+
+	constructor(val: T | Observable<T>) {
+		super(val instanceof Observable ? val.get() : val);
+		this._updateValInput(val);
+	}
+
+	protected _evaluate(): T {
+		return this._valInput ? this._valInput.get() : super._evaluate();
+	}
+
 	transform<U>(transform: (val: T) => U | Observable<U>): Observable<U> {
 		return new DerivedObservable([this], ([val]) => transform(val));
 	}
@@ -70,14 +85,27 @@ export class Observable<T> extends BaseObservable<T> {
 	}
 
 	static batch(block: () => void) {
-		const batchedUpdater = getBatchedUpdater();
-		batchedUpdater(block);
+		BaseObservable._batch(block);
+	}
+
+	protected _updateValInput(val: T | Observable<T>) {
+		if (this._valInput !== val) {
+			if (this._valInput) {
+				this._removeInput(this._valInput);
+				this._valInput = undefined;
+			}
+			if (val instanceof Observable) {
+				this._addInput(val);
+				this._valInput = val;
+			}
+		}
 	}
 }
 
 export class WritableObservable<T> extends Observable<T> {
 	set(val: T | Observable<T>) {
-		Observable.batch(() => this._set(val));
+		this._updateValInput(val);
+		Observable.batch(() => this._set(val instanceof Observable ? val.get() : val));
 	}
 
 	update(updater: (val: T) => T | Observable<T>) {
@@ -94,75 +122,46 @@ class DerivedObservable<T, U extends Observable<any>[]> extends Observable<T> {
 	private _computeInputs: U;
 
 	constructor(computeInputs: U, compute: (vals: ObservableValues<U>) => T | Observable<T>) {
-		// There is no need to initialize a DerivedObservable with its initial value as it is evaluated each time get()
-		// is called when there is no listeners. It is also evaluated when its first listener is added to ensure that
-		// prevValue is correct when invoking listeners
+		// No need to initialize it as it will be evaluated the first time get() or onChange() is called
 		super(undefined as any);
 		this._compute = memoize(compute);
 		this._computeInputs = computeInputs;
 		for (const input of computeInputs) {
-			this.addInput(input);
+			this._addInput(input);
 		}
 	}
 
-	_get(): T | BaseObservable<T> {
-		if (this.shouldEvaluate()) {
-			return this._compute(this._computeInputs.map(input => input.get()) as ObservableValues<U>);
-		} else {
-			return super._get();
-		}
+	_evaluate(): T {
+		const computed = this._compute(this._computeInputs.map(input => input.get()) as ObservableValues<U>);
+		this._updateValInput(computed);
+		return computed instanceof Observable ? computed.get() : computed;
 	}
 }
 
 class ComputedObservable<T> extends Observable<T> {
 	private _compute: () => T;
+	private _currentInputs = new Set<BaseObservable<any>>();
 
 	constructor(compute: () => T) {
+		// No need to initialize it as it will be evaluated the first time get() or onChange() is called
 		super(undefined as any);
 		this._compute = compute;
 	}
 
-	_get(): T | BaseObservable<T> {
-		if (this.shouldEvaluate()) {
-			if (this.isAttachedToInputs()) {
-				let value!: T;
-				this.setInputs(BaseObservable.captureInputs(() => (value = this._compute())));
-				return value;
+	_evaluate(): T {
+		let value!: T;
+
+		const inputs = new Set(BaseObservable._captureInputs(() => (value = this._compute())));
+		inputs.forEach(input => {
+			if (!this._currentInputs.has(input)) {
+				this._addInput(input);
 			} else {
-				return this._compute();
+				this._currentInputs.delete(input);
 			}
-		} else {
-			return super._get();
-		}
+		});
+		this._currentInputs.forEach(input => this._removeInput(input));
+		this._currentInputs = inputs;
+
+		return value;
 	}
-}
-
-export function observable<T>(val: T | Observable<T>): WritableObservable<T> {
-	return new WritableObservable(val);
-}
-
-function memoize<T extends any[], U>(func: (args: T) => U): (args: T) => U {
-	let lastArgs: T | undefined;
-	let lastResult!: U;
-
-	return (args: T) => {
-		let argsHaveChanged = false;
-		if (!lastArgs || args.length !== lastArgs.length) {
-			argsHaveChanged = true;
-		} else {
-			for (let i = 0; i < args.length; i++) {
-				if (args[i] !== lastArgs[i]) {
-					argsHaveChanged = true;
-					break;
-				}
-			}
-		}
-
-		if (argsHaveChanged) {
-			lastArgs = args;
-			lastResult = func(args);
-		}
-
-		return lastResult;
-	};
 }

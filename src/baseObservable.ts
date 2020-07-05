@@ -1,204 +1,178 @@
+import { batchedUpdater } from "./batchedUpdater";
+
+const capturedInputFrames: BaseObservable<any>[][] = [];
+let shouldCaptureNextInput = false;
+
+let batchedObservables: BaseObservable<any>[] = [];
+let batchDepth = 0;
+
 export type Listener<T> = (val: T, prevVal: T) => void;
 export type Unsubscriber = () => void;
 
-const capturedInputFrames: Set<BaseObservable<any>>[] = [];
-let shouldCaptureNextInput = false;
-
 export class BaseObservable<T> {
-	private _val!: T;
-	private _valInput: BaseObservable<T> | undefined;
+	private _val: T;
 	private _inputs: BaseObservable<any>[] = [];
 	private _outputs: BaseObservable<any>[] = [];
 	private _listeners: Listener<T>[] = [];
 	private _attachedToInputs = false;
 	private _dirty = false;
 
-	constructor(val: T | BaseObservable<T>) {
-		this._setVal(val);
+	constructor(val: T) {
+		this._val = val;
 	}
 
 	get(): T {
 		const capturedInputs = capturedInputFrames[capturedInputFrames.length - 1];
-		if (!capturedInputs || !shouldCaptureNextInput) {
-			const val = this._get();
-			return val instanceof BaseObservable ? val.get() : val;
-		} else {
-			capturedInputs.add(this);
+		if (capturedInputs && shouldCaptureNextInput) {
 			try {
 				shouldCaptureNextInput = false;
-				const val = this._get();
-				return val instanceof BaseObservable ? val.get() : val;
+				capturedInputs.push(this);
+				return this._get();
 			} finally {
 				shouldCaptureNextInput = true;
 			}
-		}
-	}
-
-	protected _get(): T | BaseObservable<T> {
-		return this._valInput ? this._valInput : this._val;
-	}
-
-	protected _set(val: T | BaseObservable<T>) {
-		const change = this._setVal(val);
-		if (change) {
-			// Invalidate outputs before notifying listeners.
-			// This way, if get() is called on an output from a listener, it'll be already up-to-date
-			this.invalidateOutputs();
-
-			// Notify listeners
-			for (const listener of this._listeners.slice()) {
-				listener(change.newVal, change.prevVal);
-			}
-
-			// Refresh outputs that may have changed
-			for (const output of this._outputs) {
-				output._set(output._get());
-			}
-		}
-	}
-
-	protected _setVal(val: T | BaseObservable<T>): { newVal: T; prevVal: T } | undefined {
-		// If the value is an observable, add it as an input.
-		// If the previous value was an observable, remove it from the inputs
-		const valInput = val instanceof BaseObservable ? val : undefined;
-		if (this._valInput !== valInput) {
-			if (this._valInput) {
-				this.removeInput(this._valInput);
-			}
-			this._valInput = valInput;
-			if (valInput) {
-				this.addInput(valInput);
-			}
-		}
-
-		const newVal = valInput ? valInput.get() : (val as T);
-		if (this._val !== newVal) {
-			const prevVal = this._val;
-			this._val = newVal;
-			this._dirty = false;
-			return { newVal, prevVal };
 		} else {
-			return undefined;
+			return this._get();
+		}
+	}
+
+	protected _get(): T {
+		const shouldEvaluate = !this._attachedToInputs || this._dirty;
+		return shouldEvaluate ? this._evaluate() : this._val;
+	}
+
+	protected _evaluate(): T {
+		return this._val;
+	}
+
+	protected static _batch(block: () => void) {
+		try {
+			batchDepth++;
+			if (batchDepth === 1 && batchedUpdater) {
+				batchedUpdater(block);
+			} else {
+				block();
+			}
+		} finally {
+			batchDepth--;
+			if (batchDepth === 0) {
+				const observablesToUpdate = batchedObservables;
+				batchedObservables = [];
+
+				// Iterate in reverse order as _addOutputsToBatch add them in reverse topological order
+				for (let i = observablesToUpdate.length - 1; i >= 0; i--) {
+					const observable = observablesToUpdate[i];
+					observable._dirty = false;
+					observable._set(observable._evaluate());
+				}
+			}
+		}
+	}
+
+	protected _set(val: T) {
+		if (this._val !== val) {
+			const prevVal = this._val;
+			this._val = val;
+
+			if (batchDepth > 0) {
+				this._addOutputsToBatch();
+			}
+
+			for (const listener of this._listeners.slice()) {
+				listener(val, prevVal!);
+			}
+		}
+	}
+
+	private _addOutputsToBatch() {
+		// Add outputs in reverse topological order (reverse for performance reasons as push() is faster than unshift()).
+		// Ensure that each observable is added only once using the dirty flag
+		for (const output of this._outputs) {
+			if (!output._dirty) {
+				output._dirty = true;
+				output._addOutputsToBatch();
+				batchedObservables.push(output);
+			}
 		}
 	}
 
 	onChange(listener: Listener<T>): Unsubscriber {
 		this._listeners.push(listener);
-		this.attachToInputs();
+		this._attachToInputs();
 
 		let listenerRemoved = false;
 		return () => {
 			if (!listenerRemoved) {
 				listenerRemoved = true;
 				this._listeners.splice(this._listeners.indexOf(listener), 1);
-				this.detachFromInputs();
+				this._detachFromInputs();
 			}
 		};
 	}
 
-	protected shouldEvaluate(): boolean {
-		return !this._attachedToInputs || this._dirty;
-	}
-
-	protected static captureInputs<T>(block: () => T): Set<BaseObservable<any>> {
+	protected static _captureInputs<T>(block: () => T): BaseObservable<any>[] {
 		try {
-			capturedInputFrames.push(new Set());
+			const capturedInputs = [];
+			capturedInputFrames.push(capturedInputs);
 			shouldCaptureNextInput = true;
 			block();
-			return capturedInputFrames[capturedInputFrames.length - 1];
+			return capturedInputs;
 		} finally {
 			capturedInputFrames.pop();
 			shouldCaptureNextInput = false;
 		}
 	}
 
-	protected setInputs(inputs: Set<BaseObservable<any>>) {
-		const addedInputs = inputs;
-		const removedInputs: BaseObservable<any>[] = [];
-
-		for (const oldInput of this._inputs) {
-			if (inputs.has(oldInput)) {
-				addedInputs.delete(oldInput);
-			} else {
-				removedInputs.push(oldInput);
-			}
-		}
-
-		removedInputs.forEach(input => this.removeInput(input));
-		addedInputs.forEach(input => this.addInput(input));
-	}
-
-	protected addInput(input: BaseObservable<any>) {
+	protected _addInput(input: BaseObservable<any>) {
 		this._inputs.push(input);
 		if (this._attachedToInputs) {
-			this.attachToInput(input);
+			this._attachToInput(input);
 		}
 	}
 
-	protected removeInput(input: BaseObservable<any>) {
+	protected _removeInput(input: BaseObservable<any>) {
 		this._inputs.splice(this._inputs.indexOf(input), 1);
 		if (this._attachedToInputs) {
-			this.detachFromInput(input);
+			this._detachFromInput(input);
 		}
 	}
 
-	protected isAttachedToInputs(): boolean {
-		return this._attachedToInputs;
-	}
-
-	private shouldAttachToInputs(): boolean {
+	private _shouldAttachToInputs(): boolean {
 		// Only attach to inputs when at least one listener is subscribed to the observable or to one of its outputs.
 		// This is done to avoid unused observables being references by their inputs, preventing garbage-collection.
 		return this._listeners.length > 0 || this._outputs.length > 0;
 	}
 
-	private attachToInputs() {
-		if (!this._attachedToInputs && this.shouldAttachToInputs()) {
+	private _attachToInputs() {
+		if (!this._attachedToInputs && this._shouldAttachToInputs()) {
 			this._attachedToInputs = true;
 
 			// Since the observable was not attached to its inputs, its value may be outdated.
 			// Refresh it so that onChange() will be called with the correct prevValue the next time an input changes.
-			this._dirty = true;
-			this._setVal(this._get());
+			this._val = this._evaluate();
 
 			for (const input of this._inputs) {
-				this.attachToInput(input);
-				input.attachToInputs();
+				this._attachToInput(input);
+				input._attachToInputs();
 			}
 		}
 	}
 
-	private detachFromInputs() {
-		if (this._attachedToInputs && !this.shouldAttachToInputs()) {
+	private _detachFromInputs() {
+		if (this._attachedToInputs && !this._shouldAttachToInputs()) {
 			this._attachedToInputs = false;
 			for (const input of this._inputs) {
-				this.detachFromInput(input);
-				input.detachFromInputs();
+				this._detachFromInput(input);
+				input._detachFromInputs();
 			}
 		}
 	}
 
-	private attachToInput(input: BaseObservable<any>) {
+	private _attachToInput(input: BaseObservable<any>) {
 		input._outputs.push(this);
-		if (input._dirty) {
-			this.invalidate();
-		}
 	}
 
-	private detachFromInput(input: BaseObservable<any>) {
+	private _detachFromInput(input: BaseObservable<any>) {
 		input._outputs.splice(input._outputs.indexOf(this), 1);
-	}
-
-	private invalidateOutputs() {
-		for (const output of this._outputs) {
-			output.invalidate();
-		}
-	}
-
-	private invalidate() {
-		if (!this._dirty) {
-			this._dirty = true;
-			this.invalidateOutputs();
-		}
 	}
 }

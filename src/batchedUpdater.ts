@@ -1,13 +1,7 @@
 export type BatchedUpdater = (block: () => void) => void;
 
-export const noOpBatchedUpdater: BatchedUpdater = (block: () => void) => block();
+export let batchedUpdater: BatchedUpdater | undefined;
 
-export function getBatchedUpdater(): BatchedUpdater {
-	return batchedUpdater;
-}
-
-export function setBatchedUpdater(updater: BatchedUpdater) {
+export function setBatchedUpdater(updater: BatchedUpdater | undefined) {
 	batchedUpdater = updater;
 }
-
-let batchedUpdater = noOpBatchedUpdater;

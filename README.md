@@ -13,7 +13,7 @@ _A simple Observable library that can be used for easy state-management in React
 
 ## Introduction
 
-In micro-observables, observables are objects that store a single value. They are used to store a **piece of state** of your app. An observable notifies listeners each time its value changes, triggering a re-render of all components that are using that observable.
+In micro-observables, observables are objects that store a single value. They are used to store a **piece of state** of your app. An observable notifies listeners each time its value changes, triggering a re-render of all components that are using that observable for example.
 
 Observables can be easily derived into new observables by applying functions on them, such as `transform()`, `onlyIf()` or `default()`.
 
@@ -243,7 +243,7 @@ book.set({ title: "Hamlet", author: "Shakespeare" });
 assert.equal(author.get(), "Shakespeare");
 ```
 
-**Note:** The provided `transform` function can return another observable. In this case, the transformed observable will get its value from the returned observable and will be automatically updated when the value from the returned observable changes.
+**Note:** The provided `transform` function can return another observable. In this case, the created observable will get its value from the returned observable and will be automatically updated when the value from the returned observable changes.
 
 #### Observable.onlyIf(predicate: (value) => boolean)
 
@@ -271,7 +271,7 @@ Transform the observable into a new observable that contains the value of the in
 
 ```ts
 const userLocation = observable<string | null>(null);
-const lastSeenLocation = userLocation.onlyIf(it => it !== null).default("Unknown");
+const lastSeenLocation = userLocation.onlyIf(it => !!it).default("Unknown");
 assert.equal(lastSeenLocation.get(), "Unknown");
 
 userLocation.set("Paris");
@@ -353,9 +353,11 @@ assert.equal(lastWatched.get(), "Forrest Gump");
 
 #### Observable.compute(compute: () => value)
 
-`Observable.compute()` is your **silver bullet** when it is too difficult to create a new observable with the usual `transform()`, `onlyIf()`, `from()` or `latest()` methods. It is especially useful when dealing with complex data structures. It takes a function that computes a new value by directly accessing values from other observables and returns a new observable containing the result of this computation.
+`Observable.compute()` is your **silver bullet** when it is too difficult to create a new observable with the usual `transform()`, `onlyIf()` or `latest()` methods. It is especially useful when dealing with complex data structures. It takes a function that computes a new value by directly accessing values from other observables and it returns a new observable containing the result of this computation.
 
-**How it works:** Each time the observable is evaluated, it calls the provided `compute` function and automatically tracks the observables that are used by the computation. It then registers these observables as input, ensuring that the new observable will be updated if one of them changes. If you are familiar with MobX, it works the same as the `@computed` observables.
+**How it works:** Each time the observable is evaluated, it calls the provided `compute` function and automatically tracks the observables that are used during the computation (i.e. those on which `get()` is getting called). It then registers these observables as input, ensuring that the new observable is updated each time one of them changes. If you are familiar with MobX, it works the same way as the `@computed` observables.
+
+**Note:** There is a slight performance impact of using `Observable.compute()` as it has to track and update the inputs dynamically. But unless you're dealing with thousands of computed observables, it should not be noticeable.
 
 ```ts
 const authors = new Map([
@@ -380,7 +382,7 @@ assert.deepEqual(booksWithAuthors.get(), [
 
 #### Observable.fromPromise(promise, onError?: (error) => value)
 
-Convert the promise into an observable. The observable is initialized with `undefined` and will be updated with the value of the promise when it is resolved. If the promise is rejected, the optional `onError` function is called with the error and should return the value to store in the observable. If no `onError` function is provided, the observable keeps its `undefined` value.
+Convert the promise into an observable. The observable is initialized with `undefined` and will be updated with the value of the promise when it is resolved. If the promise is rejected, the optional `onError` function is called with the error and should return the value to assign to the observable. If no `onError` function is provided, the observable keeps its `undefined` value.
 
 ```tsx
 async function fetchBook(title: string): Promise<Book> {
@@ -460,13 +462,13 @@ class TodoStore {
 }
 
 const TodoList: React.FC = () => {
-  const todos = useComputedObservable(() =>
+  const userTodos = useComputedObservable(() =>
     userStore.user.transform(user => todoStore.getTodosAssignedTo(user.id))
   );
   return (
     <div>
       <ul>
-        {todos.map((todo, index) => (
+        {userTodos.map((todo, index) => (
           <TodoItem key={index} todo={todo} index={index} />
         ))}
       </ul>

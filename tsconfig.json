@@ -10,7 +10,6 @@
 		"esModuleInterop": true,
 		"noUnusedLocals": true,
 		"noUnusedParameters": true,
-		"noImplicitReturns": true,
 		"noImplicitAny": false,
 		"noFallthroughCasesInSwitch": true,
 		"moduleResolution": "node",

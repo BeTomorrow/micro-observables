@@ -285,3 +285,18 @@ test("Computed observables should call listeners as few as possible", () => {
 	books.set(["The Jungle Book", "Pride and Prejudice"]);
 	expect(received).toStrictEqual([["The Jungle Book", "Pride and Prejudice"]]);
 });
+
+test("Observable.batch() calls listeners of modified observables only once", () => {
+	const numbers = Array.from(Array(10).keys()).map(index => observable(index));
+	const total = Observable.merge(numbers).transform(num => num.reduce((a, b) => a + b));
+	expect(total.get()).toStrictEqual(45);
+
+	let received: number[] = [];
+	total.onChange(t => received.push(t));
+	numbers.forEach(num => num.update(it => it + 1));
+	expect(received).toStrictEqual([46, 47, 48, 49, 50, 51, 52, 53, 54, 55]);
+
+	received = [];
+	Observable.batch(() => numbers.forEach(num => num.update(it => it + 1)));
+	expect(received).toStrictEqual([65]);
+});
