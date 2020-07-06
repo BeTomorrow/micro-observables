@@ -11,6 +11,10 @@ export function useObservable<T>(observable: Observable<T>): T {
 	return observable.get();
 }
 
-export function useComputedObservable<T>(compute: () => Observable<T>, deps: any[] = []): T {
+export function useMemoizedObservable<T>(compute: () => Observable<T>, deps: any[] = []): T {
 	return useObservable(useMemo(compute, deps));
+}
+
+export function useComputedObservable<T>(compute: () => T, deps: any[] = []): T {
+	return useMemoizedObservable(() => Observable.compute(compute), deps);
 }

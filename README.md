@@ -430,21 +430,17 @@ const TodoList: React.FC = () => {
 };
 ```
 
-#### useComputedObservable(compute: () => Observable, deps?: any[])
+#### useMemoizedObservable(compute: () => Observable, deps?: any[])
 
-Shortcut for `useObservable(useMemo(compute, deps))`. Return the value of the observable computed by the `compute` parameter and trigger a re-render when this value changes.
+Shortcut for `useObservable(useMemo(compute, deps))`. Return the value of the observable computed by the `compute` parameter and automatically trigger a re-render when its value changes.
 
 The `compute` function is evaluated each time one of the values in `deps` changes. If unspecified, `deps` defaults to `[]`, resulting in the `compute` function being called only once.
+
+**Note:** `useMemoizedObservable()` is an optimized version of `useObservable()` that avoids recreating a new observable and reevaluating it at each render. Most of the time, you actually don't even need it, creating an observable is a fast operation and if your observable evaluation does not require heavy computation, you can use `useObservable()` directly instead.
 
 ```tsx
 type User = { id: string; displayName: string };
 type Todo = { text: string; completed: boolean; assigneeId: string };
-
-class UserStore {
-  private _user = observable<User>();
-
-  readonly user = this._user.readOnly();
-}
 
 class TodoStore {
   private _todos = observable<readonly Todo[]>([]);
@@ -457,13 +453,12 @@ class TodoStore {
 }
 
 const TodoList: React.FC = () => {
-  const userTodos = useComputedObservable(() =>
-    userStore.user.transform(user => todoStore.getTodosAssignedTo(user.id))
-  );
+  const [assignee, setAssignee] = useState<User>({ id: "1234", displayName: "John" });
+  const todos = useMemoizedObservable(() => todoStore.getTodosAssignedTo(assignee.id), [assignee]);
   return (
     <div>
       <ul>
-        {userTodos.map((todo, index) => (
+        {todos.map((todo, index) => (
           <TodoItem key={index} todo={todo} index={index} />
         ))}
       </ul>
@@ -472,4 +467,8 @@ const TodoList: React.FC = () => {
 };
 ```
 
-**Note:** `useComputedObservable()` is an optimized version of `useObservable()` that avoids recreating a new observable and reevaluating its value at each render. It will **not decrease the amount of renders**. Most of the time, you actually don't even need it, creating an observable is a fast operation and if your observable evaluation does not require heavy computation, you can use `useObservable()` instead.
+#### useComputedObservable(compute: () => value, deps?: any[])
+
+Shortcut for `useMemoizedObservable(() => Observable.compute(compute), deps))`. Create a new observable with `Observable.compute()` and automatically trigger a re-render when the result of the `compute` function changes.
+
+The observable is recreated each time one of the values in `deps` changes. If unspecified, `deps` defaults to `[]`, resulting in the observable being created only once.
