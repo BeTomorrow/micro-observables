@@ -402,7 +402,7 @@ Additionally, if React batching is enabled, it batches re-renders together. You 
 
 ```tsx
 const numbers = [...Array(10)].map((_, index) => observable(index));
-const total = Observable.compute(() => numbers.reduce((a, b) => a.get() + b.get()));
+const total = Observable.merge(numbers).transform(num => num.reduce((a, b) => a + b));
 expect(total.get()).toStrictEqual(45);
 
 // Listeners of "total" will only be called once, with the final result.
