@@ -44,8 +44,8 @@ export class Observable<T> extends BaseObservable<T> {
 		return (this as unknown) as Observable<U>;
 	}
 
-	static select<T extends Observable<any>[], U>(
-		observables: T,
+	static select<T extends readonly Observable<any>[], U>(
+		observables: [...T],
 		selector: (...vals: ObservableValues<T>) => U
 	): Observable<U> {
 		return Observable.from(...observables).select(vals => selector(...vals));
