@@ -20,9 +20,11 @@ export class Observable<T> extends BaseObservable<T> {
 		return this._valInput ? this._valInput.get() : super._evaluate();
 	}
 
-	transform<U>(transform: (val: T) => U | Observable<U>): Observable<U> {
-		return new DerivedObservable([this], ([val]) => transform(val));
+	select<U>(selector: (val: T) => U | Observable<U>): Observable<U> {
+		return new DerivedObservable([this], ([val]) => selector(val));
 	}
+
+	transform = this.select;
 
 	onlyIf(predicate: (val: T) => boolean): Observable<T | undefined> {
 		let filteredVal: T | undefined = undefined;
@@ -40,6 +42,13 @@ export class Observable<T> extends BaseObservable<T> {
 
 	as<U extends T>(): Observable<U> {
 		return (this as unknown) as Observable<U>;
+	}
+
+	static select<T extends Observable<any>[], U>(
+		observables: T,
+		selector: (...vals: ObservableValues<T>) => U
+	): Observable<U> {
+		return Observable.from(...observables).select(vals => selector(...vals));
 	}
 
 	static from<T extends Observable<any>[]>(...observables: T): Observable<ObservableValues<T>> {
