@@ -51,6 +51,8 @@ export class Observable<T> extends BaseObservable<T> {
 		return Observable.from(...observables).select(vals => selector(...vals));
 	}
 
+	static transform = Observable.select;
+
 	static from<T extends Observable<any>[]>(...observables: T): Observable<ObservableValues<T>> {
 		return new DerivedObservable(observables, values => values);
 	}

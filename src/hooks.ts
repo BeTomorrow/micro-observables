@@ -3,12 +3,16 @@ import { Observable } from "./observable";
 
 export function useObservable<T>(observable: Observable<T>): T {
 	const [, forceRender] = useState({});
+	const val = observable.get();
 
 	useEffect(() => {
+		if (observable.get() !== val) {
+			forceRender({});
+		}
 		return observable.onChange(() => forceRender({}));
 	}, [observable]);
 
-	return observable.get();
+	return val;
 }
 
 export function useMemoizedObservable<T>(compute: () => Observable<T>, deps: any[] = []): T {
