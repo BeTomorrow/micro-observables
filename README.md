@@ -54,7 +54,7 @@ Micro-observables works great with React and can be used to replace state-manage
 ```tsx
 type Todo = { text: string; done: boolean };
 
-class TodoStore {
+class TodoService {
   private _todos = observable<readonly Todo[]>([]);
 
   readonly todos = this._todos.readOnly();
@@ -69,12 +69,12 @@ class TodoStore {
   }
 }
 
-const todoStore = new TodoStore();
-todoStore.addTodo("Eat my brocolli");
-todoStore.addTodo("Plan trip to Bordeaux");
+const todoService = new TodoService();
+todoService.addTodo("Eat my brocolli");
+todoService.addTodo("Plan trip to Bordeaux");
 
 export const TodoList: React.FC = () => {
-  const todos = useObservable(todoStore.todos);
+  const todos = useObservable(todoService.todos);
   return (
     <div>
       <TodoListHeader />
@@ -89,7 +89,7 @@ export const TodoList: React.FC = () => {
 };
 
 const TodoListHeader: React.FC = () => {
-  const pendingCount = useObservable(todoStore.pendingTodos.select(it => it.length));
+  const pendingCount = useObservable(todoService.pendingTodos.select(it => it.length));
   return <h3>{pendingCount} pending todos</h3>;
 };
 
@@ -97,7 +97,7 @@ const TodoItem: React.FC<{ todo: Todo; index: number }> = ({ todo, index }) => {
   return (
     <li
       style={{ textDecoration: todo.done ? "line-through" : "none" }}
-      onClick={() => todoStore.toggleTodo(index)}
+      onClick={() => todoService.toggleTodo(index)}
     >
       {todo.text}
     </li>
@@ -109,7 +109,7 @@ const AddTodo: React.FC = () => {
 
   const addTodo = (event: React.FormEvent) => {
     event.preventDefault();
-    todoStore.addTodo(input.current!.value);
+    todoService.addTodo(input.current!.value);
     input.current!.value = "";
   };
 
@@ -220,7 +220,7 @@ assert.deepEqual(prevReceived, ["The Jungle Book"]);
 Cast the observable into a read-only observable without the `set()` and `update()` methods. This is used for better encapsulation, preventing outside modifications when an observable is exposed.
 
 ```ts
-class BookStore {
+class BookService {
   private _book = observable("The Jungle Book");
 
   readonly book = this._book.readOnly();
@@ -440,7 +440,7 @@ The `factory` function is evaluated each time one of the values in `deps` change
 type User = { id: string; displayName: string };
 type Todo = { text: string; completed: boolean; assigneeId: string };
 
-class TodoStore {
+class TodoService {
   private _todos = observable<readonly Todo[]>([]);
 
   readonly todos = this._todos.readOnly();
@@ -452,7 +452,7 @@ class TodoStore {
 
 const TodoList: React.FC = () => {
   const [assignee, setAssignee] = useState<User>({ id: "1234", displayName: "John" });
-  const todos = useMemoizedObservable(() => todoStore.getTodosAssignedTo(assignee.id), [assignee]);
+  const todos = useMemoizedObservable(() => todoService.getTodosAssignedTo(assignee.id), [assignee]);
   return (
     <div>
       <ul>
