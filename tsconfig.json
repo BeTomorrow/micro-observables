@@ -1,22 +1,22 @@
 {
-	"compilerOptions": {
-		"module": "esnext",
-		"lib": ["esnext"],
-		"importHelpers": true,
-		"declaration": true,
-		"sourceMap": true,
-		"rootDir": "./src",
-		"strict": true,
-		"esModuleInterop": true,
-		"noUnusedLocals": true,
-		"noUnusedParameters": true,
-		"noImplicitAny": false,
-		"noFallthroughCasesInSwitch": true,
-		"moduleResolution": "node",
-		"baseUrl": "./",
-		"paths": {
-			"*": ["src/*", "node_modules/*"]
-		}
-	},
-	"include": ["src", "types"]
+  "compilerOptions": {
+    "module": "esnext",
+    "lib": ["esnext"],
+    "importHelpers": true,
+    "declaration": true,
+    "sourceMap": true,
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitAny": false,
+    "noFallthroughCasesInSwitch": true,
+    "moduleResolution": "node",
+    "baseUrl": "./",
+    "paths": {
+      "*": ["src/*", "node_modules/*"]
+    }
+  },
+  "include": ["src", "types"]
 }

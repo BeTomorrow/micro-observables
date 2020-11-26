@@ -95,10 +95,7 @@ const TodoListHeader: React.FC = () => {
 
 const TodoItem: React.FC<{ todo: Todo; index: number }> = ({ todo, index }) => {
   return (
-    <li
-      style={{ textDecoration: todo.done ? "line-through" : "none" }}
-      onClick={() => todoService.toggleTodo(index)}
-    >
+    <li style={{ textDecoration: todo.done ? "line-through" : "none" }} onClick={() => todoService.toggleTodo(index)}>
       {todo.text}
     </li>
   );
@@ -482,11 +479,11 @@ Hooks cannot be used in class components. In this case, you can use the `withObs
 
 ```tsx
 interface Props {
-  assigneeId: string
+  assigneeId: string;
 }
 
 interface InjectedProps {
-  readonly todos: Todo[]
+  readonly todos: Todo[];
 }
 
 class TodoList extends React.Component<Props & InjectedProps> {
@@ -504,8 +501,8 @@ class TodoList extends React.Component<Props & InjectedProps> {
 }
 
 const mapping = (ownProps: Props) => ({
-  todos: todoService.getTodosAssignedTo(ownProps.assigneeId)
+  todos: todoService.getTodosAssignedTo(ownProps.assigneeId),
 });
 
-export default withObservables(TodoList, mapping)
+export default withObservables(TodoList, mapping);
 ```
