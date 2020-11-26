@@ -1,7 +1,7 @@
 import { Unsubscriber } from "baseObservable";
 import React from "react";
-import { shallowEqual } from "shallowEqual";
 import { Observable, ObservableValues } from "./observable";
+import { shallowEqual } from "./shallowEqual";
 
 type Mapping = { [key: string]: Observable<any> };
 type InjectedProps<M extends Mapping> = ObservableValues<M>;
