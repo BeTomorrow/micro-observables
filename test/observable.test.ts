@@ -154,6 +154,23 @@ test("Observable.onlyOf() should create a new observable, keeping only the value
 	expect(receivedOdd).toStrictEqual([1, 3]);
 });
 
+test("Observable.select() should create a new observable with the result of the computation applied on the given input values", () => {
+	const author = observable("Shakespeare");
+	const title = observable("Hamlet");
+	const bookWithAuthor = Observable.select([author, title], (a, t) => ({
+		author: a,
+		title: t,
+	}));
+	expect(bookWithAuthor.get()).toStrictEqual({ author: "Shakespeare", title: "Hamlet" });
+
+	title.set("Romeo and Juliet");
+	expect(bookWithAuthor.get()).toStrictEqual({ author: "Shakespeare", title: "Romeo and Juliet" });
+
+	author.set("Kipling");
+	title.set("The Jungle Book");
+	expect(bookWithAuthor.get()).toStrictEqual({ author: "Kipling", title: "The Jungle Book" });
+});
+
 test("Observable.from() should create a new observable containing an array with the values from the given observables", () => {
 	const book1 = observable("The Jungle Book");
 	const book2 = observable("Pride and Prejudice");
@@ -173,40 +190,6 @@ test("Observable.from() should create a new observable containing an array with 
 		["Romeo and Juliet", "Pride and Prejudice"],
 		["Romeo and Juliet", "Hamlet"],
 	]);
-});
-
-test("Observable.from().transform() should create a new observable with the result of the computation applied on the given input values", () => {
-	const author = observable("Shakespeare");
-	const title = observable("Hamlet");
-	const bookWithAuthor = Observable.from(author, title).transform(([a, t]) => ({
-		author: a,
-		title: t,
-	}));
-	expect(bookWithAuthor.get()).toStrictEqual({ author: "Shakespeare", title: "Hamlet" });
-
-	title.set("Romeo and Juliet");
-	expect(bookWithAuthor.get()).toStrictEqual({ author: "Shakespeare", title: "Romeo and Juliet" });
-
-	author.set("Kipling");
-	title.set("The Jungle Book");
-	expect(bookWithAuthor.get()).toStrictEqual({ author: "Kipling", title: "The Jungle Book" });
-});
-
-test("Observable.select() should create a new observable with the result of the computation applied on the given input values", () => {
-	const author = observable("Shakespeare");
-	const title = observable("Hamlet");
-	const bookWithAuthor = Observable.select([author, title], (a, t) => ({
-		author: a,
-		title: t,
-	}));
-	expect(bookWithAuthor.get()).toStrictEqual({ author: "Shakespeare", title: "Hamlet" });
-
-	title.set("Romeo and Juliet");
-	expect(bookWithAuthor.get()).toStrictEqual({ author: "Shakespeare", title: "Romeo and Juliet" });
-
-	author.set("Kipling");
-	title.set("The Jungle Book");
-	expect(bookWithAuthor.get()).toStrictEqual({ author: "Kipling", title: "The Jungle Book" });
 });
 
 test("Observable.merge() should transform an array of observables into an observable of array", () => {

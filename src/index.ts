@@ -1,5 +1,5 @@
 export * from "./baseObservable";
 export * from "./batchedUpdater";
-export * from "./hooks";
 export * from "./observable";
+export * from "./useObservable";
 export * from "./withObservables";

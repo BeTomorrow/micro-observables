@@ -24,6 +24,9 @@ export class Observable<T> extends BaseObservable<T> {
 		return new DerivedObservable([this], ([val]) => selector(val));
 	}
 
+	/**
+	 * @deprecated Use observable.select() instead
+	 */
 	transform = this.select;
 
 	onlyIf(predicate: (val: T) => boolean): Observable<T | undefined> {
@@ -51,8 +54,9 @@ export class Observable<T> extends BaseObservable<T> {
 		return new DerivedObservable(observables, vals => selector(...vals));
 	}
 
-	static transform = Observable.select;
-
+	/**
+	 * @deprecated Use Observable.select() instead
+	 */
 	static from<T extends Observable<any>[]>(...observables: T): Observable<ObservableValues<T>> {
 		return new DerivedObservable(observables, values => values);
 	}

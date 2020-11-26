@@ -15,7 +15,7 @@ _A simple Observable library that can be used for easy state-management in React
 
 In micro-observables, observables are objects that store a single value. They are used to store a **piece of state** of your app. An observable notifies listeners each time its value changes, triggering a re-render of all components that are using that observable for example.
 
-Observables can be easily derived into new observables by applying functions on them, such as `transform()`, `onlyIf()` or `default()`.
+Observables can be easily derived into new observables by applying functions on them, such as `select()`, `onlyIf()` or `default()`.
 
 Micro-observables works great in combination with React thanks to the use of the `useObservable()` and `useComputedObservable()` hooks. It can be used as a simple yet powerful alternative to [Redux](https://redux.js.org) or [MobX](https://mobx.js.org).
 
@@ -30,7 +30,7 @@ import assert from "assert";
 import { observable } from "micro-observables";
 
 const favoriteBook = observable({ title: "The Jungle Book", author: "Kipling" });
-const favoriteAuthor = favoriteBook.transform(book => book.author);
+const favoriteAuthor = favoriteBook.select(book => book.author);
 
 assert.deepEqual(favoriteBook.get(), { title: "The Jungle Book", author: "Kipling" });
 assert.equal(favoriteAuthor.get(), "Kipling");
@@ -58,16 +58,14 @@ class TodoStore {
   private _todos = observable<readonly Todo[]>([]);
 
   readonly todos = this._todos.readOnly();
-  readonly pendingTodos = this._todos.transform(todos => todos.filter(it => !it.done));
+  readonly pendingTodos = this._todos.select(todos => todos.filter(it => !it.done));
 
   addTodo(text: string) {
     this._todos.update(todos => [...todos, { text, done: false }]);
   }
 
   toggleTodo(index: number) {
-    this._todos.update(todos =>
-      todos.map((todo, i) => (i === index ? { ...todo, done: !todo.done } : todo))
-    );
+    this._todos.update(todos => todos.map((todo, i) => (i === index ? { ...todo, done: !todo.done } : todo)));
   }
 }
 
@@ -91,7 +89,7 @@ export const TodoList: React.FC = () => {
 };
 
 const TodoListHeader: React.FC = () => {
-  const pendingCount = useObservable(todoStore.pendingTodos.transform(it => it.length));
+  const pendingCount = useObservable(todoStore.pendingTodos.select(it => it.length));
   return <h3>{pendingCount} pending todos</h3>;
 };
 
@@ -142,7 +140,7 @@ By default, batching is disabled as it depends on the platform your app is targe
 
 ## API
 
-In micro-observables, there are two types of observables: `WritableObservable` and `Observable`. A `WritableObservable` allows to modify its value with the `set()` or `update()` methods. An `Observable` is read-only and can be created from a `WritableObservable` with `readOnly()`, `transform()`, `onlyIf()` and other methods.
+In micro-observables, there are two types of observables: `WritableObservable` and `Observable`. A `WritableObservable` allows to modify its value with the `set()` or `update()` methods. An `Observable` is read-only and can be created from a `WritableObservable` with `readOnly()`, `select()`, `onlyIf()` and other methods.
 
 ### Functions
 
@@ -231,19 +229,19 @@ class BookStore {
 
 **Note:** This method only makes sense with TypeScript as the returned observable is the same unchanged observable.
 
-#### Observable.transform(transform: (value) => transformedValue)
+#### Observable.select(selector: (value) => selectedValue)
 
-Create a new observable with the result of the given transform applied on the input observable. Each time the input observable changes, the returned observable will reflect this changes.
+Create a new observable with the result of the given selector applied on the input value. Each time the input observable changes, the returned observable will reflect this changes.
 
 ```ts
 const book = observable({ title: "The Jungle Book", author: "Kipling" });
-const author = book.transform(it => it.author);
+const author = book.select(it => it.author);
 assert.equal(author.get(), "Kipling");
 book.set({ title: "Hamlet", author: "Shakespeare" });
 assert.equal(author.get(), "Shakespeare");
 ```
 
-**Note:** The provided `transform` function can return another observable. In this case, the created observable will get its value from the returned observable and will be automatically updated when the value from the returned observable changes.
+**Note:** The provided `selector` function can return another observable. In this case, the created observable will get its value from the returned observable and will be automatically updated when the value from the returned observable changes.
 
 #### Observable.onlyIf(predicate: (value) => boolean)
 
@@ -267,7 +265,7 @@ assert.equal(odd.get(), 1);
 
 #### Observable.default(defaultValue)
 
-Transform the observable into a new observable that contains the value of the input observable if it is not `undefined` or `null`, or `defaultValue` otherwise. It is equivalent to `observable.transform(val => val ?? defaultValue)`. This is especially useful in combination with `onlyIf()` to provide a default value if current value does not initially pass the predicate.
+Transform the observable into a new observable that contains the value of the input observable if it is not `undefined` or `null`, or `defaultValue` otherwise. It is equivalent to `observable.select(val => val ?? defaultValue)`. This is especially useful in combination with `onlyIf()` to provide a default value if current value does not initially pass the predicate.
 
 ```ts
 const userLocation = observable<string | null>(null);
@@ -299,14 +297,14 @@ age.set(35);
 
 ### Static Methods
 
-#### Observable.from(observable1, observable2, ...)
+#### Observable.select([observable1, observable2, ...], selector: (val1, val2...) => selectedValue)
 
-Take several observables and transform them into a single observable containing an array with the values from each observable. This is often used in combination with `transform()` to combine several observables into a single one.
+Take several observables and transform them into a single observable with the result of the given selector applied on the input values. Each time one of the input observables changes, the returned observable will reflect this changes. This is a more generic version of the `observable.select()` instance method, that can takes several observables.
 
 ```ts
 const author = observable("Shakespeare");
 const book = observable("Hamlet");
-const bookWithAuthor = Observable.from(author, book).transform(([a, b]) => ({
+const bookWithAuthor = Observable.select([author, book], (a, b) => ({
   title: b,
   author: a,
 }));
@@ -322,7 +320,7 @@ assert.deepEqual(bookWithAuthor.get(), { title: "The Jungle Book", author: "Kipl
 
 #### Observable.merge(observables)
 
-Transform an array of observables into a single observable containing an array with the values from each observable. This is almost the identical to `Observable.from()`, except it takes a single array argument while `Observable.from()` takes several observable arguments.
+Transform an array of observables into a single observable containing an array with the values from each observable.
 
 ```ts
 const booksWithId = [
@@ -353,7 +351,7 @@ assert.equal(lastWatched.get(), "Forrest Gump");
 
 #### Observable.compute(compute: () => value)
 
-`Observable.compute()` is your **silver bullet** when it is too difficult to create a new observable with the usual `transform()`, `onlyIf()` or `latest()` methods. It is especially useful when dealing with complex data structures. It takes a function that computes a new value by directly accessing values from other observables and it returns a new observable containing the result of this computation.
+`Observable.compute()` is your **silver bullet** when it is too difficult to create a new observable with the usual `select()`, `onlyIf()` or `latest()` methods. It is especially useful when dealing with complex data structures. It takes a function that computes a new value by directly accessing values from other observables and it returns a new observable containing the result of this computation.
 
 **How it works:** Each time the observable is evaluated, it calls the provided `compute` function and automatically tracks the observables that are used during the computation (i.e. those on which `get()` is getting called). It then registers these observables as input, ensuring that the new observable is updated each time one of them changes. If you are familiar with MobX, it works the same way as the `@computed` observables.
 
@@ -402,7 +400,7 @@ Additionally, if React batching is enabled, it batches re-renders together. You 
 
 ```tsx
 const numbers = [...Array(10)].map((_, index) => observable(index));
-const total = Observable.merge(numbers).transform(num => num.reduce((a, b) => a + b));
+const total = Observable.merge(numbers).select(num => num.reduce((a, b) => a + b));
 expect(total.get()).toStrictEqual(45);
 
 // Listeners of "total" will only be called once, with the final result.
@@ -430,11 +428,11 @@ const TodoList: React.FC = () => {
 };
 ```
 
-#### useMemoizedObservable(compute: () => Observable, deps?: any[])
+#### useMemoizedObservable(factory: () => Observable, deps: any[])
 
-Shortcut for `useObservable(useMemo(compute, deps))`. Return the value of the observable computed by the `compute` parameter and automatically trigger a re-render when its value changes.
+Shortcut for `useObservable(useMemo(factory, deps))`. Return the value of the observable created by the `factory` parameter and automatically trigger a re-render when its value changes.
 
-The `compute` function is evaluated each time one of the values in `deps` changes. If unspecified, `deps` defaults to `[]`, resulting in the `compute` function being called only once.
+The `factory` function is evaluated each time one of the values in `deps` changes. Passing `[]` to `deps` results in the `factory` function being called only once.
 
 **Note:** `useMemoizedObservable()` is an optimized version of `useObservable()` that avoids recreating a new observable and reevaluating it at each render. Most of the time, you actually don't even need it, creating an observable is a fast operation and if your observable evaluation does not require heavy computation, you can use `useObservable()` directly instead.
 
@@ -448,7 +446,7 @@ class TodoStore {
   readonly todos = this._todos.readOnly();
 
   getTodosAssignedTo(assigneeId: string): Observable<Todo[]> {
-    return this._todos.transform(todos => todos.filter(it => it.assigneeId === assigneeId));
+    return this._todos.select(todos => todos.filter(it => it.assigneeId === assigneeId));
   }
 }
 
