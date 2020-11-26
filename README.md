@@ -431,7 +431,7 @@ const TodoList: React.FC = () => {
 
 Shortcut for `useObservable(useMemo(factory, deps))`. Return the value of the observable created by the `factory` parameter and automatically trigger a re-render when its value changes.
 
-The `factory` function is evaluated each time one of the values in `deps` changes. Passing `[]` to `deps` results in the `factory` function being called only once.
+The `factory` function is evaluated each time one of the values in `deps` changes. If unspecified, `deps` defaults to `[]`, resulting in the `factory` function being called only once.
 
 **Note:** `useMemoizedObservable()` is an optimized version of `useObservable()` that avoids recreating a new observable and reevaluating it at each render. Most of the time, you actually don't even need it, creating an observable is a fast operation and if your observable evaluation does not require heavy computation, you can use `useObservable()` directly instead.
 

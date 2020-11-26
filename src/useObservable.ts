@@ -15,7 +15,7 @@ export function useObservable<T>(observable: Observable<T>): T {
   return val;
 }
 
-export function useMemoizedObservable<T>(factory: () => Observable<T>, deps: any[]): T {
+export function useMemoizedObservable<T>(factory: () => Observable<T>, deps: any[] = []): T {
   return useObservable(useMemo(factory, deps));
 }
 
