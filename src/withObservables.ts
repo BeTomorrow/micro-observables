@@ -1,5 +1,6 @@
 import { Unsubscriber } from "baseObservable";
 import React from "react";
+import { shallowEqual } from "shallowEqual";
 import { Observable, ObservableValues } from "./observable";
 
 type Mapping = { [key: string]: Observable<any> };
@@ -11,14 +12,9 @@ export const withObservables = <P extends InjectedProps<M>, M extends Mapping>(
   mapping: (ownProps: HocProps<P, M>) => M
 ): React.ComponentType<HocProps<P, M>> =>
   class WithObservables extends React.PureComponent<HocProps<P, M>> {
+    private _ownProps!: HocProps<P, M>;
     private _mapping!: M;
     private _unsubscribers: Unsubscriber[] = [];
-
-    componentDidMount() {
-      this._unsubscribers = Object.values(this._mapping).map(observable =>
-        observable.onChange(() => this.forceUpdate())
-      );
-    }
 
     componentWillUnmount() {
       this._unsubscribers.forEach(it => it());
@@ -26,13 +22,26 @@ export const withObservables = <P extends InjectedProps<M>, M extends Mapping>(
     }
 
     render(): JSX.Element {
-      const injectedProps: { [key: string]: any } = {};
+      this.updateMapping();
 
-      this._mapping = typeof mapping === "function" ? mapping(this.props) : mapping;
+      const injectedProps: { [key: string]: any } = {};
       for (const key of Object.keys(this._mapping)) {
         injectedProps[key] = this._mapping[key].get();
       }
 
       return React.createElement(Component, { ...this.props, ...injectedProps } as P);
+    }
+
+    private updateMapping() {
+      if (!this._ownProps || !shallowEqual(this._ownProps, this.props)) {
+        this._ownProps = this.props;
+        this._mapping = typeof mapping === "function" ? mapping(this.props) : mapping;
+
+        const unsubscribers = Object.values(this._mapping).map(observable =>
+          observable.onChange(() => this.forceUpdate())
+        );
+        this._unsubscribers.forEach(it => it());
+        this._unsubscribers = unsubscribers;
+      }
     }
   };
