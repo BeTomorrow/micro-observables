@@ -409,7 +409,9 @@ total.onChange(val => assert.equal(val, 65));
 Observable.batch(() => numbers.forEach(num => num.update(it => it + 1)));
 ```
 
-### React Hooks
+## React Integration
+
+### Hooks
 
 #### useObservable(observable)
 
@@ -450,9 +452,8 @@ class TodoService {
   }
 }
 
-const TodoList: React.FC = () => {
-  const [assignee, setAssignee] = useState<User>({ id: "1234", displayName: "John" });
-  const todos = useMemoizedObservable(() => todoService.getTodosAssignedTo(assignee.id), [assignee]);
+const TodoList: React.FC<{ assigneeId: string }> = ({ assigneeId }) => {
+  const todos = useMemoizedObservable(() => todoService.getTodosAssignedTo(assigneeId), [assigneeId]);
   return (
     <div>
       <ul>
@@ -470,3 +471,41 @@ const TodoList: React.FC = () => {
 Shortcut for `useMemoizedObservable(() => Observable.compute(compute), deps))`. Create a new observable with `Observable.compute()` and automatically trigger a re-render when the result of the `compute` function changes.
 
 The observable is recreated each time one of the values in `deps` changes. If unspecified, `deps` defaults to `[]`, resulting in the observable being created only once.
+
+### Higher Order Component
+
+#### withObservables(Component, mapping): InjectedComponent
+
+Hooks cannot be used in class components. In this case, you can use the `withObservables` HOC in order to inject values from observables into props of a component. It works the same as Redux's `connect()` function as it takes a component and a props-to-observables mapping.
+
+`mapping` can either be a plain mapping object of the form `{ props1: observable1, props2: observable2 }`, or it can be a function taking the `ownProps` of the component and returning a plain mapping object.
+
+```tsx
+interface Props {
+  assigneeId: string
+}
+
+interface InjectedProps {
+  readonly todos: Todo[]
+}
+
+class TodoList extends React.Component<Props & InjectedProps> {
+  render() {
+    return (
+      <div>
+        <ul>
+          {todos.map((todo, index) => (
+            <TodoItem key={index} todo={todo} index={index} />
+          ))}
+        </ul>
+      </div>
+    );
+  }
+}
+
+const mapping = (ownProps: Props) => ({
+  todos: todoService.getTodosAssignedTo(ownProps.assigneeId)
+});
+
+export default withObservables(TodoList, mapping)
+```
