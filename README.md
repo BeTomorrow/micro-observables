@@ -5,7 +5,7 @@ _A simple Observable library that can be used for easy state-management in React
 ## Features
 
 - **💆‍♂️ Easy to learn:** No boilerplate required, write code as you would naturally. Just wrap values that you want to expose to your UI into observables. Micro-observables only exposes a few methods to create and transform observables
-- **⚛️ React support:** Out-of-the-box React support based on React Hooks
+- **⚛️ React support:** Out-of-the-box React support based on React Hooks and higher-order components
 - **🐥 Lightweight:** The whole source code is made of less than 400 lines of code, resulting in a **6kb** production bundle
 - **🔥 Performant:** Observables are evaluated only when needed. Micro-observables also supports [React and React Native batching](#react-batching), minimizing the amount of re-renders
 - **🔮 Debuggable:** Micro-observables does not rely on ES6 proxies, making it easy to identify lines of code that trigger renders. Code execution is easy to follow, making debugging straightforward
@@ -17,7 +17,7 @@ In micro-observables, observables are objects that store a single value. They ar
 
 Observables can be easily derived into new observables by applying functions on them, such as `select()`, `onlyIf()` or `default()`.
 
-Micro-observables works great in combination with React thanks to the use of the `useObservable()` and `useComputedObservable()` hooks. It can be used as a simple yet powerful alternative to [Redux](https://redux.js.org) or [MobX](https://mobx.js.org).
+Micro-observables works great in combination with React thanks to the use of the `useObservable()` hook or the `withObservables` higher-order component. It can be used as a simple yet powerful alternative to [Redux](https://redux.js.org) or [MobX](https://mobx.js.org).
 
 Micro-observables has been inspired by the simplicity of [micro-signals](https://github.com/lelandmiller/micro-signals). We recommend checking out this library for event-driven programming.
 
@@ -47,7 +47,7 @@ assert.deepEqual(receivedAuthors, ["Austen", "Shakespeare"]);
 
 ## Using micro-observables with React
 
-Micro-observables works great with React and can be used to replace state-management libraries such as Redux or MobX. It allows to easily keep components in sync with shared state by storing pieces of state into observables. The `useObservable()` and `useComputedObservable()` hooks are used to access these values from a component.
+Micro-observables works great with React and can be used to replace state-management libraries such as Redux or MobX. It allows to easily keep components in sync with shared state by storing pieces of state into observables. The `useObservable()` hook or `withObservables` higher-order component can be used to access these values from a component.
 
 ### Obligatory TodoList example
 
