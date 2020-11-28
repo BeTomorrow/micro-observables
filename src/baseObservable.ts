@@ -12,17 +12,20 @@ let batchDepth = 0;
 
 export type Listener<T> = (val: T, prevVal: T) => void;
 export type Unsubscriber = () => void;
+export type Options = { [key: string]: any };
 
 export class BaseObservable<T> {
   private _val: T;
+  private _options: Options;
   private _inputs: BaseObservable<any>[] = [];
   private _outputs: BaseObservable<any>[] = [];
   private _listeners: Listener<T>[] = [];
   private _attachedToInputs = false;
   private _dirty = false;
 
-  constructor(val: T) {
+  constructor(val: T, options: Options = {}) {
     this._val = val;
+    this._options = options;
     plugins.onCreate(this, val);
   }
 
@@ -79,6 +82,15 @@ export class BaseObservable<T> {
         this._detachFromInputs();
       }
     };
+  }
+
+  options(): Options {
+    return this._options;
+  }
+
+  withOptions(options: Partial<Options>): this {
+    this._options = { ...this._options, ...options };
+    return this;
   }
 
   protected static _captureInputs<T>(block: () => T): BaseObservable<any>[] {
@@ -141,10 +153,12 @@ export class BaseObservable<T> {
 
   private _attachToInput(input: BaseObservable<any>) {
     input._outputs.push(this);
+    plugins.onAttach(input, this);
   }
 
   private _detachFromInput(input: BaseObservable<any>) {
     input._outputs.splice(input._outputs.indexOf(this), 1);
+    plugins.onDetach(input, this);
   }
 
   private _addOutputsToBatch() {

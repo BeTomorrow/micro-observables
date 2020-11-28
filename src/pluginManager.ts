@@ -15,4 +15,12 @@ export class PluginManager {
   onChange(observable: BaseObservable<any>, val, prevVal) {
     this._plugins.forEach(it => it.onChange?.(observable, val, prevVal));
   }
+
+  onAttach(input: BaseObservable<any>, output: BaseObservable<any>) {
+    this._plugins.forEach(it => it.onAttach?.(input, output));
+  }
+
+  onDetach(input: BaseObservable<any>, output: BaseObservable<any>) {
+    this._plugins.forEach(it => it.onDetach?.(input, output));
+  }
 }

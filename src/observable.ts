@@ -1,19 +1,19 @@
-import { BaseObservable } from "./baseObservable";
+import { BaseObservable, Options } from "./baseObservable";
 import { memoize } from "./memoize";
 import { Plugin } from "./plugin";
 
 export type ObservableValue<T> = T extends Observable<infer U> ? U : never;
 export type ObservableValues<T> = { [K in keyof T]: ObservableValue<T[K]> };
 
-export function observable<T>(val: T | Observable<T>): WritableObservable<T> {
-  return new WritableObservable(val);
+export function observable<T>(val: T | Observable<T>, options?: Options): WritableObservable<T> {
+  return new WritableObservable(val, options);
 }
 
 export class Observable<T> extends BaseObservable<T> {
   protected _valInput: Observable<T> | undefined;
 
-  constructor(val: T | Observable<T>) {
-    super(val instanceof Observable ? val.get() : val);
+  constructor(val: T | Observable<T>, options?: Options) {
+    super(val instanceof Observable ? val.get() : val, options);
     this._updateValInput(val);
   }
 
