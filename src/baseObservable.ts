@@ -1,4 +1,8 @@
 import { batchedUpdater } from "./batchedUpdater";
+import { Plugin } from "./plugin";
+import { PluginManager } from "./pluginManager";
+
+const plugins = new PluginManager();
 
 const capturedInputFrames: BaseObservable<any>[][] = [];
 let shouldCaptureNextInput = false;
@@ -19,6 +23,7 @@ export class BaseObservable<T> {
 
   constructor(val: T) {
     this._val = val;
+    plugins.onCreate(this, val);
   }
 
   get(): T {
@@ -45,30 +50,6 @@ export class BaseObservable<T> {
     return this._val;
   }
 
-  protected static _batch(block: () => void) {
-    try {
-      batchDepth++;
-      if (batchDepth === 1 && batchedUpdater) {
-        batchedUpdater(block);
-      } else {
-        block();
-      }
-    } finally {
-      batchDepth--;
-      if (batchDepth === 0) {
-        const observablesToUpdate = batchedObservables;
-        batchedObservables = [];
-
-        // Iterate in reverse order as _addOutputsToBatch add them in reverse topological order
-        for (let i = observablesToUpdate.length - 1; i >= 0; i--) {
-          const observable = observablesToUpdate[i];
-          observable._dirty = false;
-          observable._set(observable._evaluate());
-        }
-      }
-    }
-  }
-
   protected _set(val: T) {
     if (this._val !== val) {
       const prevVal = this._val;
@@ -79,20 +60,10 @@ export class BaseObservable<T> {
       }
 
       for (const listener of this._listeners.slice()) {
-        listener(val, prevVal!);
+        listener(val, prevVal);
       }
-    }
-  }
 
-  private _addOutputsToBatch() {
-    // Add outputs in reverse topological order (reverse for performance reasons as push() is faster than unshift()).
-    // Ensure that each observable is added only once using the dirty flag
-    for (const output of this._outputs) {
-      if (!output._dirty) {
-        output._dirty = true;
-        output._addOutputsToBatch();
-        batchedObservables.push(output);
-      }
+      plugins.onChange(this, val, prevVal);
     }
   }
 
@@ -174,5 +145,45 @@ export class BaseObservable<T> {
 
   private _detachFromInput(input: BaseObservable<any>) {
     input._outputs.splice(input._outputs.indexOf(this), 1);
+  }
+
+  private _addOutputsToBatch() {
+    // Add outputs in reverse topological order (reverse for performance reasons as push() is faster than unshift()).
+    // Ensure that each observable is added only once using the dirty flag
+    for (const output of this._outputs) {
+      if (!output._dirty) {
+        output._dirty = true;
+        output._addOutputsToBatch();
+        batchedObservables.push(output);
+      }
+    }
+  }
+
+  protected static _batch(block: () => void) {
+    try {
+      batchDepth++;
+      if (batchDepth === 1 && batchedUpdater) {
+        batchedUpdater(block);
+      } else {
+        block();
+      }
+    } finally {
+      batchDepth--;
+      if (batchDepth === 0) {
+        const observablesToUpdate = batchedObservables;
+        batchedObservables = [];
+
+        // Iterate in reverse order as _addOutputsToBatch add them in reverse topological order
+        for (let i = observablesToUpdate.length - 1; i >= 0; i--) {
+          const observable = observablesToUpdate[i];
+          observable._dirty = false;
+          observable._set(observable._evaluate());
+        }
+      }
+    }
+  }
+
+  protected static _use(plugin: Plugin) {
+    plugins.use(plugin);
   }
 }

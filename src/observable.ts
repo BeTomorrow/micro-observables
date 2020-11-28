@@ -1,5 +1,6 @@
 import { BaseObservable } from "./baseObservable";
 import { memoize } from "./memoize";
+import { Plugin } from "./plugin";
 
 export type ObservableValue<T> = T extends Observable<infer U> ? U : never;
 export type ObservableValues<T> = { [K in keyof T]: ObservableValue<T[K]> };
@@ -101,6 +102,10 @@ export class Observable<T> extends BaseObservable<T> {
 
   static batch(block: () => void) {
     BaseObservable._batch(block);
+  }
+
+  static use(plugin: Plugin) {
+    BaseObservable._use(plugin);
   }
 
   protected _updateValInput(val: T | Observable<T>) {
