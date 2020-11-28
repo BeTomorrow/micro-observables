@@ -1,5 +1,5 @@
-import { Unsubscriber } from "baseObservable";
 import React from "react";
+import { Unsubscriber } from "./baseObservable";
 import { Observable, ObservableValues } from "./observable";
 import { shallowEqual } from "./shallowEqual";
 
