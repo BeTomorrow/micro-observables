@@ -24,7 +24,7 @@
     "build": "tsdx build",
     "test": "tsdx test",
     "lint": "tsdx lint",
-    "prepare": "tsdx build"
+    "prepare": "tsdx build && tsdx test"
   },
   "engines": {
     "node": ">=10"
