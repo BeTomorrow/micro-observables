@@ -2,9 +2,23 @@
   "name": "micro-observables",
   "version": "1.7.0-rc1",
   "description": "A simple Observable library that can be used for easy state management in React applications.",
+  "author": "BeTomorrow",
+  "license": "MIT",
+  "keywords": [
+    "observable",
+    "typescript",
+    "react",
+    "state",
+    "hook"
+  ],
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
   "module": "dist/micro-observables.esm.js",
+  "files": [
+    "dist",
+    "src",
+    "batching*"
+  ],
   "scripts": {
     "start": "tsdx watch",
     "build": "tsdx build",
@@ -18,11 +32,6 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/BeTomorrow/micro-observables.git"
-  },
-  "author": "BeTomorrow",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/BeTomorrow/micro-observables/issues"
   },
   "homepage": "https://github.com/BeTomorrow/micro-observables#readme",
   "husky": {
@@ -44,17 +53,5 @@
     "tslib": "^2.0.0",
     "typescript": "^4.0.3"
   },
-  "dependencies": {},
-  "files": [
-    "dist",
-    "src",
-    "batching*"
-  ],
-  "keywords": [
-    "observable",
-    "typescript",
-    "react",
-    "state",
-    "hook"
-  ]
+  "dependencies": {}
 }
