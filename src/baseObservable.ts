@@ -84,11 +84,11 @@ export class BaseObservable<T> {
     };
   }
 
-  options(): Options {
-    return this._options;
+  options<O extends Options = Options>(): O {
+    return this._options as O;
   }
 
-  withOptions(options: Partial<Options>): this {
+  withOptions<O extends Options = Options>(options: Partial<O>): this {
     this._options = { ...this._options, ...options };
     return this;
   }
