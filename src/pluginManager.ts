@@ -16,11 +16,19 @@ export class PluginManager {
     this._plugins.forEach(it => it.onChange?.(observable, val, prevVal));
   }
 
-  onAttach(input: BaseObservable<any>, output: BaseObservable<any>) {
-    this._plugins.forEach(it => it.onAttach?.(input, output));
+  onSubscribe(observable: BaseObservable<any>) {
+    this._plugins.forEach(it => it.onSubscribe?.(observable));
   }
 
-  onDetach(input: BaseObservable<any>, output: BaseObservable<any>) {
-    this._plugins.forEach(it => it.onDetach?.(input, output));
+  onUnsubscribe(observable: BaseObservable<any>) {
+    this._plugins.forEach(it => it.onUnsubscribe?.(observable));
+  }
+
+  onAttach(observable: BaseObservable<any>, input: BaseObservable<any>) {
+    this._plugins.forEach(it => it.onAttach?.(observable, input));
+  }
+
+  onDetach(observable: BaseObservable<any>, input: BaseObservable<any>) {
+    this._plugins.forEach(it => it.onDetach?.(observable, input));
   }
 }

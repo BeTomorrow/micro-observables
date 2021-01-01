@@ -36,7 +36,7 @@ assert.deepEqual(favoriteBook.get(), { title: "The Jungle Book", author: "Kiplin
 assert.equal(favoriteAuthor.get(), "Kipling");
 
 const receivedAuthors: string[] = [];
-favoriteAuthor.onChange(author => receivedAuthors.push(author));
+favoriteAuthor.subscribe(author => receivedAuthors.push(author));
 
 favoriteBook.set({ title: "Pride and Prejudice", author: "Austen" });
 assert.deepEqual(receivedAuthors, ["Austen"]);
@@ -186,16 +186,16 @@ books.update(it => [...it, "Pride and Prejudice"]);
 assert.deepEqual(books.get(), ["The Jungle Book", "Pride and Prejudice"]);
 ```
 
-#### Observable.onChange(listener: (value, prevValue) => void)
+#### Observable.subscribe(listener: (value, prevValue) => void)
 
-Add a listener that will be called when the observable's value changes. It returns a function to call to unsubscribe from the observable. Each time the value changes, all the listeners are called with the new value and the previous value. **Note:** Unlike other observable libraries, the listener is not called immediately with the current value when `onChange()` is called.
+Add a listener that will be called when the observable's value changes. It returns a function to call to unsubscribe from the observable. Each time the value changes, all the listeners are called with the new value and the previous value. **Note:** Unlike other observable libraries, the listener is not called immediately with the current value when `subscribe()` is called.
 
 ```ts
 const book = observable("The Jungle Book");
 
 const received: string[] = [];
 const prevReceived: string[] = [];
-const unsubscribe = book.onChange((newBook, prevBook) => {
+const unsubscribe = book.subscribe((newBook, prevBook) => {
   received.push(newBook);
   prevReceived.push(prevBook);
 });
@@ -386,7 +386,7 @@ async function fetchBook(title: string): Promise<Book> {
 
 const book = Observable.fromPromise(fetchBook("The Jungle Book"));
 assert.equal(book.get(), undefined);
-book.onChange(book => console.log(`Retrieved book: ${book}));
+book.subscribe(book => console.log(`Retrieved book: ${book}));
 ```
 
 #### Observable.batch(block: () => void)
@@ -402,7 +402,7 @@ expect(total.get()).toStrictEqual(45);
 
 // Listeners of "total" will only be called once, with the final result.
 // Without batching(), it would have been called 10 times
-total.onChange(val => assert.equal(val, 65));
+total.subscribe(val => assert.equal(val, 65));
 Observable.batch(() => numbers.forEach(num => num.update(it => it + 1)));
 ```
 

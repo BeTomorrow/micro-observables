@@ -9,7 +9,7 @@ export function useObservable<T>(observable: Observable<T>): T {
     if (observable.get() !== val) {
       forceRender({});
     }
-    return observable.onChange(() => forceRender({}));
+    return observable.subscribe(() => forceRender({}));
   }, [observable]);
 
   return val;

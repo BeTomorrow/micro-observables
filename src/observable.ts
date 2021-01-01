@@ -93,9 +93,9 @@ export class Observable<T> extends BaseObservable<T> {
 
   toPromise(): Promise<T> {
     return new Promise(resolve => {
-      const unsubscriber = this.onChange(val => {
+      const unsubscribe = this.subscribe(val => {
         resolve(val);
-        unsubscriber();
+        unsubscribe();
       });
     });
   }
@@ -142,7 +142,7 @@ class DerivedObservable<T, U extends Observable<any>[]> extends Observable<T> {
   private _computeInputs: U;
 
   constructor(computeInputs: U, compute: (vals: ObservableValues<U>) => T | Observable<T>) {
-    // No need to initialize it as it will be evaluated the first time get() or onChange() is called
+    // No need to initialize it as it will be evaluated the first time get() or subscribe() is called
     super(undefined as any);
     this._compute = memoize(compute);
     this._computeInputs = computeInputs;
@@ -163,7 +163,7 @@ class ComputedObservable<T> extends Observable<T> {
   private _currentInputs = new Set<BaseObservable<any>>();
 
   constructor(compute: () => T) {
-    // No need to initialize it as it will be evaluated the first time get() or onChange() is called
+    // No need to initialize it as it will be evaluated the first time get() or subscribe() is called
     super(undefined as any);
     this._compute = compute;
   }

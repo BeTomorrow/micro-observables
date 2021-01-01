@@ -70,7 +70,7 @@ export class BaseObservable<T> {
     }
   }
 
-  onChange(listener: Listener<T>): Unsubscriber {
+  subscribe(listener: Listener<T>): Unsubscriber {
     this._listeners.push(listener);
     this._attachToInputs();
 
@@ -82,6 +82,19 @@ export class BaseObservable<T> {
         this._detachFromInputs();
       }
     };
+  }
+
+  /**
+   * @deprecated Use observable.subscribe() instead
+   */
+  onChange = this.subscribe;
+
+  protected onSubscribe() {
+    // Called when the first listener subscribes to the observable or to one of its outputs
+  }
+
+  protected onUnsubscribe() {
+    // Called when the last listener unsubscribes from the observable and from all of its outputs
   }
 
   options<O extends Options = Options>(): O {
@@ -131,8 +144,11 @@ export class BaseObservable<T> {
       this._attachedToInputs = true;
 
       // Since the observable was not attached to its inputs, its value may be outdated.
-      // Refresh it so that onChange() will be called with the correct prevValue the next time an input changes.
+      // Refresh it so that listeners will be called with the correct prevValue the next time an input changes.
       this._val = this._evaluate();
+
+      this.onSubscribe();
+      plugins.onSubscribe(this);
 
       for (const input of this._inputs) {
         this._attachToInput(input);
@@ -148,17 +164,20 @@ export class BaseObservable<T> {
         this._detachFromInput(input);
         input._detachFromInputs();
       }
+
+      this.onUnsubscribe();
+      plugins.onUnsubscribe(this);
     }
   }
 
   private _attachToInput(input: BaseObservable<any>) {
     input._outputs.push(this);
-    plugins.onAttach(input, this);
+    plugins.onAttach(this, input);
   }
 
   private _detachFromInput(input: BaseObservable<any>) {
     input._outputs.splice(input._outputs.indexOf(this), 1);
-    plugins.onDetach(input, this);
+    plugins.onDetach(this, input);
   }
 
   private _addOutputsToBatch() {
