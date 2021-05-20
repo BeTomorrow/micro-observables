@@ -97,7 +97,11 @@ export class BaseObservable<T> {
     // Called when the last listener unsubscribes from the observable and from all of its outputs
   }
 
-  options<O extends Options = Options>(): O {
+  getInputs(): BaseObservable<any>[] {
+    return this._inputs;
+  }
+
+  getOptions<O extends Options = Options>(): O {
     return this._options as O;
   }
 
