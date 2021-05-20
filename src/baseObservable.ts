@@ -89,11 +89,11 @@ export class BaseObservable<T> {
    */
   onChange = this.subscribe;
 
-  protected onSubscribe() {
+  protected onBecomeObserved() {
     // Called when the first listener subscribes to the observable or to one of its outputs
   }
 
-  protected onUnsubscribe() {
+  protected onBecomeUnobserved() {
     // Called when the last listener unsubscribes from the observable and from all of its outputs
   }
 
@@ -147,8 +147,8 @@ export class BaseObservable<T> {
       // Refresh it so that listeners will be called with the correct prevValue the next time an input changes.
       this._val = this._evaluate();
 
-      this.onSubscribe();
-      plugins.onSubscribe(this);
+      this.onBecomeObserved();
+      plugins.onBecomeObserved(this);
 
       for (const input of this._inputs) {
         this._attachToInput(input);
@@ -165,8 +165,8 @@ export class BaseObservable<T> {
         input._detachFromInputs();
       }
 
-      this.onUnsubscribe();
-      plugins.onUnsubscribe(this);
+      this.onBecomeUnobserved();
+      plugins.onBecomeUnobserved(this);
     }
   }
 

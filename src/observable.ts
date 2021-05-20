@@ -32,7 +32,7 @@ export class Observable<T> extends BaseObservable<T> {
 
   onlyIf(predicate: (val: T) => boolean): Observable<T | undefined> {
     let filteredVal: T | undefined = undefined;
-    return this.transform(val => {
+    return this.select(val => {
       if (predicate(val)) {
         filteredVal = val;
       }
@@ -41,7 +41,7 @@ export class Observable<T> extends BaseObservable<T> {
   }
 
   default(defaultVal: NonNullable<T> | Observable<NonNullable<T>>): Observable<NonNullable<T>> {
-    return this.transform(val => val ?? defaultVal);
+    return this.select(val => val ?? defaultVal);
   }
 
   as<U extends T>(): Observable<U> {

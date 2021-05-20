@@ -16,12 +16,12 @@ export class PluginManager {
     this._plugins.forEach(it => it.onChange?.(observable, val, prevVal));
   }
 
-  onSubscribe(observable: BaseObservable<any>) {
-    this._plugins.forEach(it => it.onSubscribe?.(observable));
+  onBecomeObserved(observable: BaseObservable<any>) {
+    this._plugins.forEach(it => it.onBecomeObserved?.(observable));
   }
 
-  onUnsubscribe(observable: BaseObservable<any>) {
-    this._plugins.forEach(it => it.onUnsubscribe?.(observable));
+  onBecomeUnobserved(observable: BaseObservable<any>) {
+    this._plugins.forEach(it => it.onBecomeUnobserved?.(observable));
   }
 
   onAttach(observable: BaseObservable<any>, input: BaseObservable<any>) {
