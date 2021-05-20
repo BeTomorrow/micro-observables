@@ -1,3 +1,4 @@
+import hoistNonReactStatics from "hoist-non-react-statics";
 import React from "react";
 import { Unsubscriber } from "./baseObservable";
 import { Observable, ObservableValues } from "./observable";
@@ -10,7 +11,7 @@ type HocProps<P extends InjectedProps<M>, M extends Mapping> = Pick<P, Exclude<k
 export const withObservables = <P extends InjectedProps<M>, M extends Mapping>(
   Component: React.ComponentType<P>,
   mapping: (ownProps: HocProps<P, M>) => M
-): React.ComponentType<HocProps<P, M>> =>
+): React.ComponentType<HocProps<P, M>> => {
   class WithObservables extends React.PureComponent<HocProps<P, M>> {
     private _ownProps!: HocProps<P, M>;
     private _mapping!: M;
@@ -44,4 +45,6 @@ export const withObservables = <P extends InjectedProps<M>, M extends Mapping>(
         this._unsubscribers = unsubscribers;
       }
     }
-  };
+  }
+  return hoistNonReactStatics(WithObservables, Component);
+};
