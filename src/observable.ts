@@ -9,6 +9,10 @@ export function observable<T>(val: T | Observable<T>, options?: Options): Writab
   return new WritableObservable(val, options);
 }
 
+export function derived<T>(derive: () => T): Observable<T> {
+  return Observable.compute(derive);
+}
+
 export class Observable<T> extends BaseObservable<T> {
   protected _valInput: Observable<T> | undefined;
 

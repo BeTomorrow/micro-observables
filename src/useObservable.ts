@@ -1,14 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useState } from "react";
 import { Observable } from "./observable";
 
 export function useObservable<T>(observable: Observable<T>): T {
   const [, forceRender] = useState({});
   const val = observable.get();
 
-  useEffect(() => {
-    if (observable.get() !== val) {
-      forceRender({});
-    }
+  useLayoutEffect(() => {
     return observable.subscribe(() => forceRender({}));
   }, [observable]);
 
