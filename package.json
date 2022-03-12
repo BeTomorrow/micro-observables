@@ -44,7 +44,7 @@
     "trailingComma": "es5"
   },
   "peerDependencies": {
-    "react": "^16.8.0"
+    "react": ">=16.8.0"
   },
   "devDependencies": {
     "@types/hoist-non-react-statics": "^3.3.1",
