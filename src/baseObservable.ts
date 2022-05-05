@@ -2,6 +2,8 @@ import { batchedUpdater } from "./batchedUpdater";
 import { Plugin } from "./plugin";
 import { PluginManager } from "./pluginManager";
 
+const UNSET = Symbol();
+
 const plugins = new PluginManager();
 
 const capturedInputFrames: BaseObservable<any>[][] = [];
@@ -16,12 +18,12 @@ export type Options = { [key: string]: any };
 
 export class BaseObservable<T> {
   private _val: T;
+  private _prevVal: T | typeof UNSET = UNSET;
   private _options: Options;
   private _inputs: BaseObservable<any>[] = [];
   private _outputs: BaseObservable<any>[] = [];
   private _listeners: Listener<T>[] = [];
   private _attachedToInputs = false;
-  private _dirty = false;
 
   constructor(val: T, options: Options = {}) {
     this._val = val;
@@ -45,7 +47,7 @@ export class BaseObservable<T> {
   }
 
   protected _get(): T {
-    const shouldEvaluate = !this._attachedToInputs || this._dirty;
+    const shouldEvaluate = !this._attachedToInputs || this._prevVal !== UNSET;
     return shouldEvaluate ? this._evaluate() : this._val;
   }
 
@@ -55,18 +57,8 @@ export class BaseObservable<T> {
 
   protected _set(val: T) {
     if (this._val !== val) {
-      const prevVal = this._val;
+      this._addToBatchRecursively();
       this._val = val;
-
-      if (batchDepth > 0) {
-        this._addOutputsToBatch();
-      }
-
-      for (const listener of this._listeners.slice()) {
-        listener(val, prevVal);
-      }
-
-      plugins.onChange(this, val, prevVal);
     }
   }
 
@@ -184,15 +176,15 @@ export class BaseObservable<T> {
     plugins.onDetach(this, input);
   }
 
-  private _addOutputsToBatch() {
-    // Add outputs in reverse topological order (reverse for performance reasons as push() is faster than unshift()).
-    // Ensure that each observable is added only once using the dirty flag
-    for (const output of this._outputs) {
-      if (!output._dirty) {
-        output._dirty = true;
-        output._addOutputsToBatch();
-        batchedObservables.push(output);
+  private _addToBatchRecursively() {
+    if (this._prevVal === UNSET) {
+      this._prevVal = this._val;
+
+      // Add the observable and its outputs in reverse topological order
+      for (const output of this._outputs) {
+        output._addToBatchRecursively();
       }
+      batchedObservables.push(this);
     }
   }
 
@@ -210,11 +202,20 @@ export class BaseObservable<T> {
         const observablesToUpdate = batchedObservables;
         batchedObservables = [];
 
-        // Iterate in reverse order as _addOutputsToBatch add them in reverse topological order
+        // Iterate in reverse order as _addToBatchRecursively() adds them in reverse topological order
         for (let i = observablesToUpdate.length - 1; i >= 0; i--) {
           const observable = observablesToUpdate[i];
-          observable._dirty = false;
-          observable._set(observable._evaluate());
+          const prevVal = observable._prevVal;
+          observable._prevVal = UNSET;
+          observable._val = observable._evaluate();
+          const val = observable._val;
+
+          if (val !== prevVal) {
+            for (const listener of observable._listeners.slice()) {
+              listener(val, prevVal);
+            }
+            plugins.onChange(observable, val, prevVal);
+          }
         }
       }
     }

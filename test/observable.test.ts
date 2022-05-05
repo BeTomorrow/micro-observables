@@ -92,9 +92,9 @@ test("Listeners can be removed as soon as they are invoked without preventing ot
   expect(received).toStrictEqual(["Pride and Prejudice", "Pride and Prejudice", "Hamlet"]);
 });
 
-test("Observable.transform() should create a new observable with the result of the transform applied on the current value", () => {
+test("Observable.select() should create a new observable with the result of the transform applied on the current value", () => {
   const book = observable({ title: "The Jungle Book", author: "Kipling" });
-  const author = book.transform(it => it.author);
+  const author = book.select(it => it.author);
   expect(author.get()).toBe("Kipling");
 
   const received: string[] = [];
@@ -109,10 +109,10 @@ test("Observable.transform() should create a new observable with the result of t
   expect(received).toStrictEqual(["Austen", "Shakespeare"]);
 });
 
-test("Observable.transform() should accept a function returning another observable", () => {
+test("Observable.select() should accept a function returning another observable", () => {
   const books = [observable("The Jungle Book"), observable("Pride and Prejudice")];
   const selectedIndex = observable(0);
-  const selectedBook = selectedIndex.transform(it => books[it]);
+  const selectedBook = selectedIndex.select(it => books[it]);
   expect(selectedBook.get()).toStrictEqual("The Jungle Book");
 
   const received: string[] = [];
@@ -272,8 +272,8 @@ test("Observable.toPromise() should create a promise that is resolved the next t
 
 test("Computed observables should call listeners as few as possible", () => {
   const books = observable(["The Jungle Book", "Pride and Prejudice"]);
-  const book1 = books.transform(it => it[0]);
-  const book2 = books.transform(it => it[1]);
+  const book1 = books.select(it => it[0]);
+  const book2 = books.select(it => it[1]);
   const newBooks = Observable.from(book1, book2);
   expect(newBooks.get()).toStrictEqual(books.get());
 
@@ -288,7 +288,7 @@ test("Computed observables should call listeners as few as possible", () => {
 
 test("Observable.batch() calls listeners of modified observables only once", () => {
   const numbers = Array.from(Array(10).keys()).map(index => observable(index));
-  const total = Observable.merge(numbers).transform(num => num.reduce((a, b) => a + b));
+  const total = Observable.merge(numbers).select(num => num.reduce((a, b) => a + b));
   expect(total.get()).toStrictEqual(45);
 
   let received: number[] = [];
